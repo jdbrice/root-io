@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
 # @Author: jdb
 # @Date:   2017-06-14 17:36:12
-# @Last Modified by:   jdb
-# @Last Modified time: 2017-06-14 19:05:14
+# @Last Modified by:   Daniel
+# @Last Modified time: 2017-06-16 09:27:12
 
 
 import rootio.TBuffer as TBuffer
+from rootio.TFile import  TFile
+import json
+import logging
 
-buf = TBuffer.TBuffer( bytearray([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]), 0, 0, 0 )
+logging.basicConfig(filename='example.log',level=logging.DEBUG, filemode="w")
 
-print(buf.ntou4())
+tfile = TFile( "mtd_gpid_8.root" )
+tfile.ReadKeys()
+
+obj = tfile.ReadObject( "dy3" )
+
+
+
+

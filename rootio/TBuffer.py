@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 # @Author: jdb
 # @Date:   2017-06-14 17:36:08
-# @Last Modified by:   jdb
-# @Last Modified time: 2017-06-14 19:04:57
+# @Last Modified by:   Daniel
+# @Last Modified time: 2017-06-16 10:51:24
 
 from rootio.ROOT import ROOT as ROOT
 import struct
+import logging
+import json
 
 class TBuffer(object):
 
 	# arr should be a byte array
 	def __init__( self, arr, pos, file, length=None ):
+
+		self.logger = logging.getLogger( "rootio.TBuffer" )
+		self.logger.debug( "Creating TBuffer[ len(arr)=%d, pos=%d, file=%s ] %s", len(arr), pos, file.fURL, self )
+
 		self._typename = "TBuffer"
 		self.arr = arr;
 		self.o = pos
@@ -20,6 +26,18 @@ class TBuffer(object):
 		#self.ClearObjectMap()
 		self.fTagOffset = 0
 		self.last_read_version = 0
+		self.fObjectMap = {}
+		self.fDisplacement = 0
+
+		self.ClearObjectMap()
+
+	def dump_state( self ) :
+		m = {
+			"_typename" : self._typename,
+			"len(arr)" : len(self.arr),
+			"pos" : self.o
+		}
+		return m
 
 	def locate( self, pos ):
 		self.o = pos
@@ -27,7 +45,7 @@ class TBuffer(object):
 		self.o = self.o + cnt
 	def remain( self ):
 		return self.length - self.o
-	def GetMAppedObject( self, tag ):
+	def GetMappedObject( self, tag ):
 		return self.fObjectMap[ tag ] if tag in self.fObjectMap else None
 	def MapObject( self, tag, obj ):
 		if None == obj :
@@ -38,7 +56,8 @@ class TBuffer(object):
 	def GetMappedClass(self, tag):
 		if tag in self.fClassMap :
 			return self.fClassMap[tag]
-		return None
+		return -1
+	
 	def ClearObjectMap(self):
 		self.fObjectMap = {}
 		self.fClassMap = {}
@@ -55,7 +74,7 @@ class TBuffer(object):
 
 		self.last_read_version = ver['val'] = self.ntoi2()
 		self.last_read_checksum = 0
-		ver.off = self.o
+		ver['off'] = self.o
 
 		if ver['val'] <= 0 and ver['bytecount'] and ver['bytecount'] >= 4 :
 			ver['checksum'] = self.ntou4()
@@ -67,7 +86,7 @@ class TBuffer(object):
 
 	def CheckByteCount(self, ver, where ):
 		if 'bytecount' in ver and None != ver['bytecount'] and 'off' in ver and (ver['off'] + ver['bytecount'] != self.o ) and None != where:
-			print( "Mismatch in %d, bytecount expected = %d, got = %d" % ( where, ver['bytecount'], (self.o - ver['off']) )  )
+			self.logger.error( "Mismatch in %s, bytecount expected = %s, got = %s", where, ver['bytecount'], (self.o - ver['off']) ) 
 			self.shift( ver['bytecount'] )
 			return False
 		return True
@@ -76,36 +95,75 @@ class TBuffer(object):
 		return ReadFastString(-1)
 
 	def ReadTString(self) :
+		self.logger.debug( "ReadTString()" )
+		self.logger.debug( "state = %s", self.dump_state() )
+
 		l = self.ntou1()
 		if 255 == l :
 			l = self.ntou4()
 		if 0 == l :
+			self.logger.debug( "TString length is 0" )
 			return ""
 
+		self.logger.debug( "TString shift=%d", l )
 		pos = self.o
 		self.shift( l )
 
 		if 0 == self.codeAt( pos ) :
+			self.logger.debug( "TString is empty " )
 			return ''
-		return self.substring( pos, pos + l )
+		tstring = self.substring( pos, pos + l )
+		self.logger.debug( "TString = %s", tstring )
+		return tstring
 
 	def ReadFastString(self, n) :
-		if n < 0 :
-			return ''
-		
+		"""
+		Reads a string of n chars or if n < 0 then it reads until it gets 0
+		"""
+		self.logger.debug( "ReadFastString( %d )", n )
 		res = ""
 		closed = False
-		# CHECK JS version, not sure if this is the same!
-		for i in range(n) :
+		
+		i = 0
+		while ( n < 0 or i < n ) :
 			code = self.ntou1()
 			if 0 == code :
-				closed = True
+				closed = True;
 				if n < 0 :
 					break
-			# TODO : python eq -> check
 			if False == closed :
 				res += chr( code )
+		self.logger.debug( "String=%s", res )
 		return res
+
+
+	def ntox( self, code ) :
+		lens = {
+			"B" : 1,
+			"H" : 2,
+			"I" : 4,
+			"b" : 1,
+			"h" : 2,
+			"i" : 4,
+			"f" : 4,
+			"d" : 8,
+		}
+		try :
+			fc = ">" + code;
+			l = lens[ code ]
+			v = struct.unpack( fc, self.arr[ self.o : self.o + l ] )
+			self.o += l
+			return v
+		except KeyError :
+			pass 
+
+		if "U" == code :
+			return ntou8()
+		if "u" == code :
+			return ntoi8()
+
+		return None
+
 
 	# def ntot(self, n, type) :
 	# 	v = struct.unpack( type, self.arr[ self.o : self.o + n ] )[0]
@@ -113,17 +171,17 @@ class TBuffer(object):
 	# 	return v
 	def ntou1(self) :
 		l = 1
-		v = struct.unpack( 'B', self.arr[ self.o : self.o + l ] )[0]
+		v = struct.unpack( '>B', self.arr[ self.o : self.o + l ] )[0]
 		self.o += l
 		return v
 	def ntou2(self) :
 		l = 2
-		v = struct.unpack( 'H', self.arr[ self.o:self.o+l ] )[0]
+		v = struct.unpack( '>H', self.arr[ self.o:self.o+l ] )[0]
 		self.o += l
 		return v
 	def ntou4(self) :
 		l = 4
-		v = struct.unpack( 'I', self.arr[ self.o:self.o+l ] )[0]
+		v = struct.unpack( '>I', self.arr[ self.o:self.o+l ] )[0]
 		self.o += l
 		return v
 
@@ -133,18 +191,18 @@ class TBuffer(object):
 		return high * 0x100000000 + low;
 
 	def ntoi1(self) :
-		v = struct.unpack( 'b', self.arr[ self.o ] )[0]
+		v = struct.unpack( '>b', self.arr[ self.o ] )[0]
 		self.o = self.o + 1
 		return v
 	
-	def ntou2(self) :
+	def ntoi2(self) :
 		l = 2
-		v = struct.unpack( 'h', self.arr[ self.o:self.o+l ] )[0]
+		v = struct.unpack( '>h', self.arr[ self.o:self.o+l ] )[0]
 		self.o += l
 		return v
-	def ntou4(self) :
+	def ntoi4(self) :
 		l = 4
-		v = struct.unpack( 'i', self.arr[ self.o:self.o+l ] )[0]
+		v = struct.unpack( '>i', self.arr[ self.o:self.o+l ] )[0]
 		self.o += l
 		return v
 
@@ -158,25 +216,61 @@ class TBuffer(object):
 
 	def ntof( self ) :
 		l = 4
-		v = struct.unpack( 'f', self.arr[ self.o : self.o + l ] )[0]
+		v = struct.unpack( '>f', self.arr[ self.o : self.o + l ] )[0]
 		self.o += l
 		return v
 
 	def ntod( self ) :
 		l = 8
-		v = struct.unpack( 'd', self.arr[ self.o : self.o + l ] )[0]
+		v = struct.unpack( '>d', self.arr[ self.o : self.o + l ] )[0]
 		self.o += l
 		return v
 
 
 	def ReadFastArray( self, n, array_type ) :
-		# TODO
+		self.logger.debug( "ReadFastArray( n=%d, array_type=%s)", n, array_type )
+		
 		i = 0
 		o = self.o
 		view = self.arr
-		switcher = {
-			ROOT.IO.kDouble : 0
-		}
+		array = [None] * n
+		func = None
+		
+		if ROOT.IO.kDouble == array_type :
+			func = self.ntod
+		elif ROOT.IO.kFloat == array_type :
+			func = self.ntof
+		elif ROOT.IO.kLong == array_type or ROOT.IO.kLong64 == array_type :
+			func = self.ntoi8
+		elif ROOT.IO.kULong == array_type or ROOT.IO.kULong64 == array_type :
+			func = self.ntou8
+		elif ROOT.IO.kInt == array_type or ROOT.IO.kCounter == array_type :
+			func = self.ntoi4
+		elif ROOT.IO.kBits == array_type or ROOT.IO.kUInt == array_type :
+			func = self.ntou4
+		elif ROOT.IO.kShort == array_type :
+			func = self.ntoi2
+		elif ROOT.IO.kUShort == array_type :
+			func = self.ntou2
+		elif ROOT.IO.kChar == array_type :
+			func = self.ntoi2
+		elif ROOT.IO.kChar == array_type or ROOT.IO.kBool == array_type :
+			func = self.ntou2
+		elif ROOT.IO.kTString == array_type :
+			func = self.ReadTString
+		elif ROOT.IO.kDouble32 == array_type or ROOT.IO.kFloat16== array_type :
+			self.logger.error( "Should not be used with FastArray" )
+		else :
+			func = self.ntou4
+
+		if None != func :
+			for i in range( 0, n ) :
+				array[i] = func()
+		else :
+			self.logger.error( "FUNC Should not be NONE" )
+		self.logger.debug( "ReadFastArray() = %s", array )
+		return array
+
 
 	def can_extract( self, place ) : 
 		for n in range( 0, len(place), 2 ) :
@@ -202,5 +296,127 @@ class TBuffer(object):
 		res = ""
 		# TODO : check here
 		for n in range( beg, end ) :
-			res += char( self.codeAt( n ) )
+			res += chr( self.codeAt( n ) )
 		return res
+
+	def ReadTKey( self, key = None ) :
+		if None == key :
+			key = {}
+		self.ClassStreamer( key, 'TKey' )
+		# name = key.fName.replace( /['"]/g,'' )
+		#  if name != key.fName :
+			# key.fRealName = key.fName;
+			# key.fName = name;
+		return key;
+
+	def ReadClass( self ) :
+		self.logger.debug( "ReadClass" )
+		self.logger.debug( "state = %s", self.dump_state() )
+		
+		class_info = { 'name': -1 }
+		tag = 0
+		bcount = self.ntou4()
+		start_pos = self.o
+		self.logger.debug( "bcount=%d, start_pos=%d", bcount,start_pos )
+
+		if  not ( bcount & ROOT.IO.kByteCountMask ) or ( bcount == ROOT.IO.kNewClassTag ) :
+			self.logger.debug( "ReadClass.A" )
+			tag = bcount
+			bcount = 0
+		else :
+			self.logger.debug( "ReadClass.B" )
+			tag = self.ntou4()
+
+		if not (tag & ROOT.IO.kClassMask) :
+			self.logger.debug( "ReadClass.C" )
+			class_info['objtag'] = tag + self.fDisplacement
+			return class_info
+		
+		if tag == ROOT.IO.kNewClassTag :
+			self.logger.debug( "ReadClass.D" )
+			class_info['name'] = self.ReadFastString( -1 )
+			
+			index = self.fTagOffset + start_pos + ROOT.IO.kMapOffset
+			if self.GetMappedClass( index ) == -1 :
+				self.MapClass( index, class_info['name'] )
+				self.logger.debug( "ReadClass.E" )
+		else :
+			self.logger.debug( "ReadClass.F" )
+			clTag = (tag & ~ROOT.IO.kClassMask) + self.fDisplacement
+			class_info['name'] = self.GetMappedClass( clTag )
+
+		if -1 == class_info['name'] :
+			self.logger.debug( "ReadClass.G" )
+			self.logger.warn( "Could not find class with tag %s",clTag )
+
+		self.logger.debug( "class_info=%s", class_info )
+		return class_info
+
+
+
+	def ReadObjectAny( self ) :
+		self.logger.debug( "ReadObjectAny" )
+		self.logger.debug( "state = %s", self.dump_state() )
+
+		objtag = self.fTagOffset + self.o + ROOT.IO.kMapOffset
+		clRef = self.ReadClass()
+
+		self.logger.debug( "clRef = %s", clRef )
+
+		if 'objtag' in clRef :
+			return self.GetMappedObject( clRef['objtag'] )
+
+
+		if 'name' in clRef and clRef['name'] == -1 :
+			return None
+
+		array_kind = ROOT.IO.GetArrayKind( clRef['name'] )
+		obj = None
+
+		if 0 == array_kind :
+			obj = self.ReadTString()
+		elif array_kind > 0 :
+			obj = self.ReadFastArray( self.ntou4(), array_kind )
+			self.MapObject( objtag, obj )
+		else :
+			obj = {}
+			self.MapObject( objtag, obj )
+			self.ClassStreamer( obj, clRef['name'] )
+
+		return obj
+
+
+	def ClassStreamer( self, obj, classname ) :
+		self.logger.debug( "ClassStreamer(%s, %s)", obj, classname )
+		if False == hasattr(obj, '_typename' ) or None == obj._typename :
+			obj['_typename'] = classname
+
+		ds = ROOT.IO.DirectStreamers[classname] if classname in ROOT.IO.DirectStreamers else None
+		if None != ds :
+			self.logger.debug( 'Calling DirectStreamer["%s"]', classname )
+			ds( self, obj )
+			return obj
+
+		# No DirectStreamer for this type
+		# TODO
+		
+
+		ver = self.ReadVersion()
+		self.logger.debug( "[%s] ver: %s", classname , ver )
+		streamer = self.fFile.GetStreamer( classname, ver )
+		if None != streamer :
+			for n in range( 0, len( streamer ) ) :
+				if callable( streamer[n]['func'] ) :
+					streamer[n]['func']( self, obj )
+				else :
+					self.logger.debug( "hmm, should be callable" )
+		else :
+			self.logger.debug( "ClassStreamer not implemented yet for ", classname  )
+			# TODO: Add Methods
+
+		# self.logger.debug( "streamer: \n %s", json.dumps(streamer, indent=4) )
+		self.CheckByteCount( ver, classname )
+
+		return obj
+
+
