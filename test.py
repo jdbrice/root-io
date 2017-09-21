@@ -15,7 +15,10 @@ logging.basicConfig(filename='example.log',level=logging.DEBUG, filemode="w")
 tfile = TFile( "mtd_gpid_8.root" )
 tfile.ReadKeys()
 
-obj = tfile.ReadObject( "dy3" )
+obj = tfile.ReadObject( "mtd_8_DeltaY_vs_BL" )
+
+logging.debug( "obj = %s", obj )
+logging.debug( json.dumps(tfile.fKeys, indent=4) )
 
 
 

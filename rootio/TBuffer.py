@@ -268,9 +268,53 @@ class TBuffer(object):
 				array[i] = func()
 		else :
 			self.logger.error( "FUNC Should not be NONE" )
+		
 		self.logger.debug( "ReadFastArray() = %s", array )
+
+		
+		# self.o = o not a mistake - dont uncomment
 		return array
 
+	def ReadNdimArray( self, handle, func ) :
+		n_dim = handle['fArrayDim']
+		max_i = handle['fMaxIndex']
+
+		if n_dim < 1 and handle['fArrayLength'] > 0 :
+			n_dim = 1
+			max_i = [ handle['fArrayLength'] ]
+		
+		if 'minus1' in handle and None != handle['minus1'] :
+			n_dim -= 1
+
+		if n_dim < 1 :
+			return runc( self, handle )
+
+		if 1 == n_dim :
+			res = [None] * max_i[0]
+			for i in range( 0, max_i[0] ) :
+				res[i] = func( self, handle )
+		if 2 == n_dim :
+			res = [None] * max_i[0]
+			for i in range( 0, max_i[0] ) :
+				res1[None] * max_i[1]
+				for j in range( 0, max_i[1] ) :
+					res1[j] = func( self, handle )
+				res[i] = res1
+		else :
+			indx = [0] * n_dim
+			arr = [ [] ] * n_dim
+
+			while indx[0] < max_i[0]:
+				k = n_dim - 1
+				arr[k].append( func( self, handle ) )
+				indx[ k ] += 1
+				while ndx[k] == max_i[k] and k > 0 :
+					indx[k] = 0
+					arr[k - 1].append( arr[k] )
+					arr[k] = [ ]
+					k -= 1
+					indx[ k ] += 1
+		return res
 
 	def can_extract( self, place ) : 
 		for n in range( 0, len(place), 2 ) :
@@ -388,8 +432,15 @@ class TBuffer(object):
 
 	def ClassStreamer( self, obj, classname ) :
 		self.logger.debug( "ClassStreamer(%s, %s)", obj, classname )
-		if False == hasattr(obj, '_typename' ) or None == obj._typename :
+		
+		# if "_typename" in obj :
+		try :
+			self.logger.debug( "obj._typename=%s", obj['_typename'] )
+		except KeyError as ke:
 			obj['_typename'] = classname
+		# if False == hasattr(obj, '_typename' ) or None == obj['_typename'] :
+		# if '_typename' not in obj :
+		
 
 		ds = ROOT.IO.DirectStreamers[classname] if classname in ROOT.IO.DirectStreamers else None
 		if None != ds :
@@ -406,10 +457,10 @@ class TBuffer(object):
 		streamer = self.fFile.GetStreamer( classname, ver )
 		if None != streamer :
 			for n in range( 0, len( streamer ) ) :
-				if callable( streamer[n]['func'] ) :
+				if 'func' in streamer[n] and callable( streamer[n]['func'] ) :
 					streamer[n]['func']( self, obj )
 				else :
-					self.logger.debug( "hmm, should be callable" )
+					self.logger.debug( "hmm, should be callable for classname=%s, obj=%s", classname, obj )
 		else :
 			self.logger.debug( "ClassStreamer not implemented yet for ", classname  )
 			# TODO: Add Methods

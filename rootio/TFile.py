@@ -24,10 +24,9 @@ class TFile (object) :
 		self.fSeekInfo      = 0
 		self.fNbytesInfo    = 0
 		self.fTagOffset     = 0
-		self.fStreamers     = 0
 		self.fStreamerInfos = None
 		self.fFileName      = ""
-		self.fStreamers     = []
+		self.fStreamers     = {}
 		self.fBasicTypes    = {}
 
 		# TLocalFile parts
@@ -371,13 +370,19 @@ class TFile (object) :
 
 		# for each entry in streamer info produce member function
 
-		if 'fElements' in s_i and None != s_i['fElements'] :
-			for s in s_i['fElements'] :
-				streamer.append( ROOT.IO.CreateMember( s, self ) )
-
+		try :
+			self.logger.debug( "s_i = %s", s_i )
+			for obj in s_i['fElements']['arr'] :
+				# obj = s_i['fElements']['arr'][s]
+				streamer.append( ROOT.IO.CreateMember( obj, self ) )
+				self.logger.debug( "Appending streamer for obj=%s", obj )
+		except KeyError :
+			self.logger.debug( "No fElements.arr" )
+		self.logger.debug( "fStreamers[%s] = %s", fullname, streamer )
+		
 		self.fStreamers[fullname] = streamer;
 
-		return ROOT.IO.AddClassMethods(clname, streamer);
+		return ROOT.AddClassMethods(classname, streamer);
 
 	def FindStreamerInfo( self, clname, clversion, clchecksum = None ) :
 		if None == self.fStreamerInfos :

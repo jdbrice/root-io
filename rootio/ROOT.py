@@ -65,9 +65,9 @@ class ROOT(object):
 		return -1
 
 	@staticmethod
-	def CreateMemberSimpleStreamer( code ) :
+	def CreateMemberSimpleStreamer( name, code ) :
 		def streamer_func( buf, obj ) :
-			obj[member['name']] = buf.ntox( code )
+			obj[name] = buf.ntox( code )
 		return streamer_func
 
 
@@ -75,7 +75,9 @@ class ROOT(object):
 	@staticmethod
 	def CreateMember (element, file) :
 		# create member entry for streamer element, which is used for reading of such data
+		ROOT.logger.debug( "CreateMember( element=%s, file=%s )", element, file )
 
+		found = False
 		member = { 
 			"name": element['fName'], 
 			"type": element['fType'], 
@@ -113,33 +115,45 @@ class ROOT(object):
 			ROOT.IO.kULong: "U"
 		}
 
+		if t == ROOT.IO.kBase :
+			found = True
+			member['base'] = element['fBaseVersion'] # indicate base class
+			member['basename'] = element['fName']; # keep class name
+			def func(buf, obj) :
+				buf.ClassStreamer( obj, member['basename'] )
+			member['func'] = func
+
+
 		if member['type'] in simple :
-			member['func'] = CreateMemberSimpleStreamer( simple[ member['type'] ] )
+			found = True
+			member['func'] = ROOT.CreateMemberSimpleStreamer( member['name'], simple[ member['type'] ] )
 			return member
 
 		if t == ROOT.IO.kBool :
+			found = True
 			def func( buf, obj ) :
 				obj[member['name']] = True if buf.ntou1() != 0 else False
 			member['func'] = func
 
 		memberL = [
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kBool),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kInt),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kCounter),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kDouble),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kUChar),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kShort),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kUShort),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kBits),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kUInt),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kULong),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kULong64),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kLong),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kLong64),
-			(JSROOT.IO.kOffsetL+JSROOT.IO.kFloat)
+			(ROOT.IO.kBool),
+			(ROOT.IO.kInt),
+			(ROOT.IO.kCounter),
+			(ROOT.IO.kDouble),
+			(ROOT.IO.kUChar),
+			(ROOT.IO.kShort),
+			(ROOT.IO.kUShort),
+			(ROOT.IO.kBits),
+			(ROOT.IO.kUInt),
+			(ROOT.IO.kULong),
+			(ROOT.IO.kULong64),
+			(ROOT.IO.kLong),
+			(ROOT.IO.kLong64),
+			(ROOT.IO.kFloat)
 		]
 
-		if t in memberL :
+		if (t - ROOT.IO.kOffsetL) in memberL :
+			found = True
 			if element['fArrayDim'] < 2 :
 				member['arrlength'] = element['fArrayLength']
 				def func( buf, obj ) :
@@ -148,11 +162,111 @@ class ROOT(object):
 			else :
 				member['arrlength'] = element['fMaxIndex'][ element['fArrayDim'] - 1 ]
 				member['minus1'] = True
+
 				def rnda( buf, obj ) :
-					def rfa( buf, handler ) :
+					def rfa( buf1, handle ) :
+						return buf1.ReadFastArray( handle['arrlength'], handle['type'] - ROOT.IO.kOffsetL )
 
-					obj[member['name']] = bug.ReadNdimArray( member, rfa )
+					obj[member['name']] = buf.ReadNdimArray( member, rfa )
+				
+				member['func'] = rnda
 
+
+		if t == ROOT.IO.kOffsetL+ROOT.IO.kChar :
+			found = True
+			if element['fArrayDim'] < 2 :
+				member['arrlength'] = element['fArrayLength'];
+				def func( buf, obj ) :
+					obj[member['name']] = buf.ReadFastString(member['arrlength']);
+				member['func'] = func
+			else :
+				member['minus1'] = True # one dimension is used for char*
+				member['arrlength'] = element['fMaxIndex'][ element['fArrayDim']-1 ]
+				def rnda( buf, obj ) :
+					def rfs( buf1, handle ) :
+						return buf1.ReadFastString( handle['arrlength'])
+
+					obj[ member['name'] ] = buf.ReadNdimArray( member, rfs )
+
+		if (t - ROOT.IO.kOffsetP) in memberL :
+			found = True
+			member['cntname'] = element['fCountName'];
+			def func( buf, obj ) :
+				v = buf.ntou1()
+				if 1 == v :
+					obj[ member['name'] ] = buf.ReadFastArray( obj[ member['cntname'] ], member['type'] - ROOT.IO.kOffsetP )
+				else :
+					obj[ member['name'] ] = []
+			member['func'] = func
+		
+		if t == (ROOT.IO.kOffsetP+ROOT.IO.kChar) :
+			found = True
+			member['cntname'] = element['fCountName'];
+			def func( buf, obj ) :
+				v = buf.ntou1()
+				if 1 == v :
+					obj[member['name']] = buf.ReadFastString(obj[member['cntname']]);
+				else :
+					obj[member['name']] = None
+
+			member['func'] = func
+
+
+		if t == ROOT.IO.kDouble32 or t == (ROOT.IO.kOffsetL+ROOT.IO.kDouble32) or t == (ROOT.IO.kOffsetP+ROOT.IO.kDouble32):
+			found = True
+			member['double32'] = True;
+
+		# SKIP - need to fill in
+
+		if t == ROOT.IO.kAnyP or t == ROOT.IO.kObjectP :
+			found = True
+			def func( buf, obj ) :
+				def roa( buf1, handle ) :
+					return buf1.ReadObjectAny()
+				obj[  member['name'] ] = buf.ReadNdimArray( member, roa )
+			member['func'] = func
+			
+		if t == ROOT.IO.kAny or t == ROOT.IO.kAnyp or t == ROOT.IO.kObjectp or t == ROOT.IO.kObject:
+			found = True
+			classname = element[ 'fName' ] if "BASE" == element['fTypeName'] else element['fTypeName']
+			if classname[-1] == "*" :
+				classname = classname[ 0 : -1 ]
+
+			arr_kind = ROOT.GetArrayKind( classname )
+
+			if arr_kind > 0 :
+				member['arrkind'] = arr_kind
+				def func( buf, obj ) :
+					obj[ member['name']] = buf.ReadFastArray( buf.ntou4(), member['arrkind'] )
+				member['func'] = func
+
+			elif arr_kind == 0 :
+				def func( buf, obj ) :
+					obj[ member['name'] ] = buf.ReadTString()
+				member['func'] = func
+			else :
+				member['classname'] = classname
+
+				if element['fArrayLength'] > 1 :
+					def func( buf, obj ) :
+						def rcs( buf1, handle ) :
+							return buf1.ClassStreamer( {}, handle['classname'] )
+						obj[ member['name'] ] = buf.ReadNdimArray( member, rcs )
+				else :
+					def func( buf, obj ) :
+						obj[ member['name'] ] = buf.ClassStreamer( {}, member['classname'] )
+
+		# Skip - need to fill in
+		if t == ROOT.IO.kTString:
+			found = True
+			def func( buf, obj ) :
+				member['name'] = buf.ReadTString()
+			member['func'] = func
+
+		if not found :
+			ROOT.logger.error( "Not FOUND : %d", t )
+
+		return member
 
 
 
@@ -268,6 +382,8 @@ class ROOT(object):
 			"TStreamerObjectAny" : CustomStreamers.TStreamerObject,
 			"TStreamerString" : CustomStreamers.TStreamerObject,
 			"TStreamerObjectPointer" : CustomStreamers.TStreamerObject,
+			"TStreamerBasicPointer" : CustomStreamers.TStreamerBasicPointer,
+			"TStreamerLoop" : CustomStreamers.TStreamerBasicPointer,
 
 
 
@@ -278,6 +394,7 @@ class ROOT(object):
 
 		"GetArrayKind" : GetArrayKind.__func__,
 		"GetTypeId" : GetTypeId.__func__,
+		"CreateMember" : CreateMember.__func__,
 	}
 	IO = Box( io_data )
 

@@ -1,7 +1,7 @@
 
 import ROOT
 import math
-
+import json
 
 def TList( buf, obj ) :
 	ROOT.ROOT.logger.debug( "TList( buf=%s, obj=%s )", buf, obj )
@@ -76,10 +76,20 @@ def TObjArray( buf, obj ) :
 		i += 1
 
 def TStreamerBase( buf, obj ) :
+	ROOT.ROOT.logger.debug( "obj=%s", obj )
 	ver = buf.last_read_version
 	buf.ClassStreamer( obj, "TStreamerElement" )
 	if ver > 2 :
 		obj['fBaseVersion'] = buf.ntou4()
+
+def TStreamerBasicPointer( buf, obj ) :
+	if buf.last_read_version > 1 :
+		buf.ClassStreamer( obj, "TStreamerElement" )
+		
+		obj['fCountVersion'] = buf.ntou4();
+		obj['fCountName']    = buf.ReadTString();
+		obj['fCountClass']   = buf.ReadTString();
+
 
 def TStreamerString( buf, obj ) :
 	if buf.last_read_version > 1 :
@@ -160,6 +170,7 @@ def TStreamerElement( buf, element ) :
 			elif nbits<15 : 
 				element['fXmin'] = nbits;
 	ROOT.ROOT.logger.debug( "TStreamerElement:END( buf=%s, element=%s )", buf, element )
+	ROOT.ROOT.logger.debug( "Element = \n %s ", json.dumps(element, indent=4) )
 
 def TStreamerObject( buf, obj ) :
 	if buf.last_read_version > 1 :
