@@ -6,11 +6,13 @@ from . import UnZip
 import box 
 import json
 
+
+
 class TFile (object) :
 	def __init__(self, url) :
 		
 		self.logger = logging.getLogger( "rootio.TFile" )
-		self.logger.debug( "Creating TFile[  url=%s ]", url )
+		# self.logger.debug( "Creating TFile[  url=%s ]", url )
 		self._typename      = "TFile"
 		self.fEND           = 0
 		self.fFullURL       = url
@@ -44,8 +46,48 @@ class TFile (object) :
 
 		# self.ReadKeys()
 
+	def to_json( self ) :
+		obj = {
+			"_typename": self._typename,
+			"fAcceptRanges": self.fAcceptRanges,
+			"fBEGIN": self.fBEGIN,
+			"fBasicTypes": self.fBasicTypes,
+			"fCompress": self.fCompress,
+			"fDatimeC" : self.fDatimeC,
+			"fDatimeM" : self.fDatimeM,
+			"fDirectories" : self.fDirectories,
+			"fEND" : self.fEND,
+			"fFileContent" : self.fFileContent,
+			"fFileName" : self.fFileName,
+			"fFullURL" : self.fFullURL,
+			"fKeys" : self.fKeys,
+			"fMaxRanges" : self.fMaxRanges,
+			"fNbytesFree" : self.fNbytesFree,
+			"fNbytesInfo" : self.fNbytesInfo,
+			"fNbytesKeys" : self.fNbytesKeys,
+			"fNbytesName" : self.fNbytesName,
+			"fSeekDir" : self.fSeekDir,
+			"fSeekFree" : self.fSeekFree,
+			"fSeekInfo" : self.fSeekInfo,
+			"fSeekKeys" : self.fSeekKeys,
+			"fSeekParent" : self.fSeekParent,
+			"fStreamerInfos" : self.fStreamerInfos,
+			"fStreamers" : self.fStreamers,
+			"fTagOffset" : self.fTagOffset,
+			"fTitle" : self.fTitle,
+			"fURL" : self.fURL,
+			"fUnits" : self.fUnits,
+			"fUseStampPar" : self.fUseStampPar,
+			"fVersion" : self.fVersion,
+			# "dict" : self.__dict__.keys()
+		}
+		return obj
+
+
+
+
 	def ReadBuffer( self, place ) :
-		self.logger.debug( "ReadBuffer( %s )", place )
+		# self.logger.debug( "ReadBuffer( %s )", place )
 		self.fLocalFile.seek( place[0] )
 		return self.fLocalFile.read( place[1] - place[0] )
 
@@ -73,7 +115,7 @@ class TFile (object) :
 		#TODO : add second part of impl
 
 	def ReadObjBuffer(self, key ) :
-		self.logger.debug( "ReadObjBuffer( %s )", key )
+		# self.logger.debug( "ReadObjBuffer( %s )", key )
 		blob1 = self.ReadBuffer( [key['fSeekKey'] + key['fKeylen'], key['fNbytes'] - key['fKeylen']] )
 		if None == blob1 :
 			return None
@@ -82,7 +124,7 @@ class TFile (object) :
 		if key['fObjlen'] <= (key['fNbytes'] - key['fKeylen']) : 
 			buf = TBuffer( blob1, 0, self, None )
 		else :
-			self.logger.debug( "UNZIPPING obj buffer" )
+			# self.logger.debug( "UNZIPPING obj buffer" )
 			objbuf = UnZip.R__unzip(blob1, key['fObjlen'])
 			if None == objbuf :
 				return None
@@ -93,11 +135,11 @@ class TFile (object) :
 		return buf
 
 	def AddReadTree(self, obj ) :
-		self.logger.debug( "AddReadTree( %s )", obj )
+		# self.logger.debug( "AddReadTree( %s )", obj )
 		pass
 
 	def ReadObject(self, obj_name, cycle = 1) :
-		self.logger.debug( "ReadObject( obj_name=%s, cycle=%d )", obj_name, cycle )
+		# self.logger.debug( "ReadObject( obj_name=%s, cycle=%d )", obj_name, cycle )
 
 		# if type( cycle ) === function :
 		if callable( cycle ) :
@@ -149,12 +191,12 @@ class TFile (object) :
 		return obj
 
 	def ReadFormulas(self, tf1, cnt ) :
-		self.logger.debug( "ReadFormulas( ... )" )
+		# self.logger.debug( "ReadFormulas( ... )" )
 		pass
 		# TODO :add
 
 	def ExtractStreamerInfos( self, buf ) :
-		self.logger.debug( "ExtractStreamerInfos( buf=%s )", buf )
+		# self.logger.debug( "ExtractStreamerInfos( buf=%s )", buf )
 		if None == buf :
 			return
 
@@ -165,12 +207,14 @@ class TFile (object) :
 		lst['_typename'] = "TStreamerInfoList"
 
 		self.fStreamerInfos = lst
-		self.logger.debug( "fStreamerInfos = \n %s", json.dumps(lst, indent=4) )
+		# self.logger.debug( "fStreamerInfos = \n %s", json.dumps(lst, indent=4) )
 
 		# TODO : add to ROOT
 		# ROOT.addStreamerInfos( lst )
 
 		for k in range( 0, len(lst['arr']) ) :
+			# self.logger.info( "LOOP %d", k )
+			# self.logger.info( json.dumps( self, indent=4, sort_keys=True ) )
 			si = lst['arr'][k]
 			if None == si['fElements'] :
 				continue
@@ -214,8 +258,10 @@ class TFile (object) :
 					continue
 
 				if None != typename and None != typ :
-					self.logger.debug( "Extract basic data type %s %s", typ, typename )
+					# self.logger.debug( "Extract basic data type %s %s", typ, typename )
 					self.fBasicTypes[ typename ] = typ
+		self.logger.info( "after extracting streamer info:" )
+		self.logger.info( json.dumps( self, indent=4, sort_keys=True ) )
 
 	def __getitem__(self, key):
 		return getattr(self, key)
@@ -229,9 +275,9 @@ class TFile (object) :
 
 		buf = TBuffer( blob, 0, self, None )
 		ftype = buf.substring( 0, 4 )
-		self.logger.debug( "fType=%s", ftype )
+		# self.logger.debug( "fType=%s", ftype )
 		if ftype != 'root' :
-			self.logger.debug("NOT A ROOT FILE")
+			# self.logger.debug("NOT A ROOT FILE")
 			return
 
 		buf.shift( 4 )
@@ -259,23 +305,23 @@ class TFile (object) :
 			self.fSeekInfo = buf.ntou8()
 			self.fNbytesInfo = buf.ntou4()
 
-		self.logger.debug("File Header:")
-		self.logger.debug( "self.fVersion    = %d", self.fVersion)
-		self.logger.debug( "self.fBEGIN      = %d", self.fBEGIN)
-		self.logger.debug( "self.fEND        = %d",  self.fEND )
-		self.logger.debug( "self.fSeekFree   = %d",  self.fSeekFree )
-		self.logger.debug( "self.fNbytesFree = %d",  self.fNbytesFree )
-		self.logger.debug( "self.fNbytesName = %d",  self.fNbytesName )
-		self.logger.debug( "self.fUnits      = %d",  self.fUnits )
-		self.logger.debug( "self.fCompress   = %d",  self.fCompress )
-		self.logger.debug( "self.fSeekInfo   = %d",  self.fSeekInfo )
-		self.logger.debug( "self.fNbytesInfo = %d",  self.fNbytesInfo )
-		self.logger.debug( "" )
+		# self.logger.debug("File Header:")
+		# self.logger.debug( "self.fVersion    = %d", self.fVersion)
+		# self.logger.debug( "self.fBEGIN      = %d", self.fBEGIN)
+		# self.logger.debug( "self.fEND        = %d",  self.fEND )
+		# self.logger.debug( "self.fSeekFree   = %d",  self.fSeekFree )
+		# self.logger.debug( "self.fNbytesFree = %d",  self.fNbytesFree )
+		# self.logger.debug( "self.fNbytesName = %d",  self.fNbytesName )
+		# self.logger.debug( "self.fUnits      = %d",  self.fUnits )
+		# self.logger.debug( "self.fCompress   = %d",  self.fCompress )
+		# self.logger.debug( "self.fSeekInfo   = %d",  self.fSeekInfo )
+		# self.logger.debug( "self.fNbytesInfo = %d",  self.fNbytesInfo )
+		# self.logger.debug( "" )
 
 		if None == self.fSeekInfo or None == self.fNbytesInfo :
 			return None
 		if 0 == self.fNbytesName or self.fNbytesName > 100000 :
-			self.logger.debug( "Init : cannot read directory info for file :", self.fURL )
+			# self.logger.debug( "Init : cannot read directory info for file :", self.fURL )
 			return None
 
 		nbytes = self.fNbytesName + 22;
@@ -289,12 +335,15 @@ class TFile (object) :
 		buf3 = TBuffer( blob3, 0, self, None )
 
 		self.fTitle = buf3.ReadTKey()['fTitle']
-		self.logger.debug( "self.fTitle = %s", self.fTitle )
+		# self.logger.debug( "self.fTitle = %s", self.fTitle )
 		buf3.locate( self.fNbytesName )
 		buf3.ClassStreamer( self, 'TDirectory' )
 
+		self.logger.info( "file now:" )
+		self.logger.info( json.dumps(self, indent=4, sort_keys=True) )
+
 		if False == hasattr( self, 'fSeekKeys' ) or 0 == self.fSeekKeys :
-			self.logger.debug( "Empty key list in", self.fURL )
+			# self.logger.debug( "Empty key list in", self.fURL )
 			return None
 
 		blob4 = self.ReadBuffer( [self.fSeekKeys, self.fNbytesKeys] )
@@ -304,24 +353,24 @@ class TFile (object) :
 		nkeys = buf4.ntoi4()
 		for i in range( 0, nkeys ) :
 			k = buf4.ReadTKey()
-			self.logger.debug( "Adding Key : %s %s, %s ", k['fClassName'], k['fName'], k['fTitle'] )
+			# self.logger.debug( "Adding Key : %s %s, %s ", k['fClassName'], k['fName'], k['fTitle'] )
 			self.fKeys.append( k )
 
 		blob5 = self.ReadBuffer( [self.fSeekInfo, self.fNbytesInfo] )
 		buf5 = TBuffer( blob5, 0, self, None )
 		si_key = buf5.ReadTKey()
 		if None == si_key :
-			self.logger.debug( "No info?" )
+			# self.logger.debug( "No info?" )
 			return None
 
 		self.fKeys.append( si_key )
-		self.logger.debug(  "StreamerInfo:", si_key )
+		# self.logger.debug(  "StreamerInfo:", si_key )
 		buf6 = self.ReadObjBuffer( si_key )
 		if None != buf6 :
 			self.ExtractStreamerInfos( buf6 )
 
 	def GetStreamer(self, classname, ver, s_i = None ):
-		self.logger.debug( "GetStreamer(classname=%s, ver=%s, s_i=%s )", classname, ver, s_i )
+		self.logger.info( "GetStreamer(classname=%s, ver=%s, s_i=%s )", classname, ver, s_i )
 		if 'TQObject' == classname or 'TBasket' == classname :
 			return None
 
@@ -330,10 +379,10 @@ class TFile (object) :
 
 		if None != ver and ( 'checksum' in ver or 'val' in ver ) :
 			fullname += "$chksum" + str(ver['checksum']) if 'checksum' in ver else "$ver" + str(ver['val'])
-			self.logger.debug( "Looking for streamer : %s",fullname )
+			self.logger.info( "Looking for streamer : %s",fullname )
 			streamer = self.fStreamers[ fullname ] if fullname in self.fStreamers else None
 			if None != streamer :
-				self.logger.debug("Found streamer: ", streamer )
+				self.logger.info("Found streamer: ", streamer )
 				return streamer
 
 		self.logger.debug( "Looking for custom streamer named %s", classname)
@@ -380,6 +429,7 @@ class TFile (object) :
 			self.logger.debug( "No fElements.arr" )
 		self.logger.debug( "fStreamers[%s] = %s", fullname, streamer )
 		
+		self.logger.info( "fStreamers[%s] = SET", fullname )
 		self.fStreamers[fullname] = streamer;
 
 		return ROOT.AddClassMethods(classname, streamer);

@@ -2,7 +2,7 @@
 # @Author: jdb
 # @Date:   2017-06-14 17:52:34
 # @Last Modified by:   Daniel
-# @Last Modified time: 2017-06-16 10:58:20
+# @Last Modified time: 2017-09-21 09:23:26
 
 from box import Box
 import struct
@@ -17,6 +17,10 @@ def BIT( n ) :
 class ROOT(object):
 
 	logger = logging.getLogger( "ROOT" )
+
+	@staticmethod
+	def getLogger( name ) :
+		return logging.getLogger( name )
 
 	@staticmethod
 	def getChar( arr, curr ) :

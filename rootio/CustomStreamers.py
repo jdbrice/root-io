@@ -4,7 +4,7 @@ import math
 import json
 
 def TList( buf, obj ) :
-	ROOT.ROOT.logger.debug( "TList( buf=%s, obj=%s )", buf, obj )
+	ROOT.ROOT.getLogger("CustomStreamers.TList").debug( "TList( buf=%s, obj=%s )", buf, obj )
 	# stream all objects in the list from the I/O buffer
 	if '_typename' not in obj :
 		obj['_typename'] = "TList";
@@ -30,6 +30,7 @@ def TList( buf, obj ) :
 
 
 def TObject( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TObject" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	obj['fUniqueID'] = buf.ntou4()
 	obj['fBits'] = buf.ntou4()
 	if ( obj[ 'fBits' ] & ROOT.ROOT.IO.kIsReferenced) :
@@ -38,26 +39,30 @@ def TObject( buf, obj ) :
 
 
 def TStreamerInfo( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TStreamerInfo" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	buf.ClassStreamer( obj, "TNamed" )
 	obj['fCheckSum'] = buf.ntou4()
 	obj['fClassVersion'] = buf.ntou4()
 	obj['fElements'] = buf.ReadObjectAny()
-	ROOT.ROOT.logger.debug( "TStreamerInfo( buf=%s, obj=%s )", buf, obj )
+	
 
 
 def TNamed_TObject( buf, obj ) :
-
+	ROOT.ROOT.getLogger( "CustomStreamers.TNamed_TObject" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	if '_typename' not in obj :
 		obj['_typename'] = "TNamed"
 	
 	buf.ClassStreamer(obj, "TObject")
 
 def TNamed_fName( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TNamed_fName" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	obj['fName'] = buf.ReadTString()
 def TNamed_fTitle( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TNamed_fTitle" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	obj['fTitle'] = buf.ReadTString()
 
 def TObjArray( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TObjArray" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	if '_typename' not in obj :
 		obj['_typename'] = "TObjArray"
 	obj['name'] = ""
@@ -76,6 +81,7 @@ def TObjArray( buf, obj ) :
 		i += 1
 
 def TStreamerBase( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TStreamerBase" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	ROOT.ROOT.logger.debug( "obj=%s", obj )
 	ver = buf.last_read_version
 	buf.ClassStreamer( obj, "TStreamerElement" )
@@ -83,6 +89,7 @@ def TStreamerBase( buf, obj ) :
 		obj['fBaseVersion'] = buf.ntou4()
 
 def TStreamerBasicPointer( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TStreamerBasicPointer" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	if buf.last_read_version > 1 :
 		buf.ClassStreamer( obj, "TStreamerElement" )
 		
@@ -92,6 +99,7 @@ def TStreamerBasicPointer( buf, obj ) :
 
 
 def TStreamerString( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TStreamerString" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	if buf.last_read_version > 1 :
 		buf.ClassStreamer(obj, "TStreamerElement")
 
@@ -117,7 +125,8 @@ def parse_range( val ) :
 	return sign * math.pi
 
 def TStreamerElement( buf, element ) :
-	ROOT.ROOT.logger.debug( "TStreamerElement( buf=%s, element=%s )", buf, element )
+	ROOT.ROOT.getLogger( "CustomStreamers.TStreamerElement" ).debug( "( buf=%s, obj=%s )", buf, element )
+	
 	
 	ver = buf.last_read_version
 	buf.ClassStreamer(element, "TNamed")
@@ -129,7 +138,7 @@ def TStreamerElement( buf, element ) :
 	element['fMaxIndex']    = buf.ReadFastArray(  buf.ntou4() if ver == 1 else 5, ROOT.ROOT.IO.kUInt  )
 	element['fTypeName']    = buf.ReadTString()
 
-	ROOT.ROOT.logger.debug( "TStreamerElement:A( buf=%s, element=%s )", buf, element )
+	# ROOT.ROOT.logger.debug( "TStreamerElement:A( buf=%s, element=%s )", buf, element )
 
 	if (element['fType'] == ROOT.ROOT.IO.kUChar) and ((element['fTypeName'] == "Bool_t") or (element['fTypeName'] == "bool")) :
 		element['fType'] = ROOT.ROOT.IO.kBool
@@ -141,7 +150,7 @@ def TStreamerElement( buf, element ) :
 		element['fXmin'] = buf.ntod()
 		element['fXmax'] = buf.ntod()
 		element['fFactor'] = buf.ntod()
-		ROOT.ROOT.logger.debug( "TStreamerElement:B( buf=%s, element=%s )", buf, element )
+		# ROOT.ROOT.logger.debug( "TStreamerElement:B( buf=%s, element=%s )", buf, element )
 	elif (ver > 3) and (element['fBits'] & ROOT.BIT(6)) : # kHasRange
 
 		p1 = element['fTitle'].find("[");
@@ -169,9 +178,10 @@ def TStreamerElement( buf, element ) :
 				element['fFactor'] = bigint / (element['fXmax'] - element['fXmin'])
 			elif nbits<15 : 
 				element['fXmin'] = nbits;
-	ROOT.ROOT.logger.debug( "TStreamerElement:END( buf=%s, element=%s )", buf, element )
-	ROOT.ROOT.logger.debug( "Element = \n %s ", json.dumps(element, indent=4) )
+	# ROOT.ROOT.logger.debug( "TStreamerElement:END( buf=%s, element=%s )", buf, element )
+	# ROOT.ROOT.logger.debug( "Element = \n %s ", json.dumps(element, indent=4) )
 
 def TStreamerObject( buf, obj ) :
+	ROOT.ROOT.getLogger( "CustomStreamers.TStreamerObject" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	if buf.last_read_version > 1 :
 		buf.ClassStreamer( obj, "TStreamerElement")
