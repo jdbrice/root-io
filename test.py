@@ -12,7 +12,7 @@ import rootio.make_json_serializable
 import logging
 import sys
 
-logging.basicConfig(filename='example.log',level=logging.DEBUG, filemode="w")
+logging.basicConfig(filename='example.log',level=logging.INFO, filemode="w")
 
 if ( len(sys.argv) < 2 ) :
 	exit()
@@ -35,6 +35,9 @@ print "READING OBJECT", sys.argv[2]
 obj = tfile.ReadObject( sys.argv[2] )
 
 print "%s" % (json.dumps(obj, indent=True) )
+
+hist = tfile.Get( sys.argv[2] )
+print "hist ndim =", hist.n_dim
 
 
 

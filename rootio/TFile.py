@@ -7,6 +7,7 @@ from . import UnZip
 import box 
 import json
 
+from rootio.Histogram import Histogram
 
 
 class TFile (object) :
@@ -143,6 +144,21 @@ class TFile (object) :
 	def AddReadTree(self, obj ) :
 		# self.logger.debug( "AddReadTree( %s )", obj )
 		pass
+
+	def Get( self, obj_name, cycle=1 ) :
+		obj = self.ReadObject( obj_name, cycle )
+		if None == obj :
+			return None
+
+		try :
+			if "TH1" in obj['_typename'] or "TH2" in obj['_typename'] or "TH3" in obj['_typename'] :
+				return Histogram( obj )
+		except KeyError as ke :
+			self.logger.error( ke )
+
+		return None
+
+
 
 	def ReadObject(self, obj_name, cycle = 1) :
 		# self.logger.debug( "ReadObject( obj_name=%s, cycle=%d )", obj_name, cycle )
