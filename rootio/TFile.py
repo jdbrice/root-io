@@ -1,5 +1,6 @@
 from rootio.ROOT import ROOT as ROOT
 from rootio.TBuffer import TBuffer
+from rootio.TDirectory import TDirectory
 import os
 import logging
 from . import UnZip
@@ -43,8 +44,10 @@ class TFile (object) :
 			self.fFullURL = file.name;
 			self.fURL = file.name;
 			self.fFileName = file.name;
+		else :
+			raise Exception( "File DNE" )
 
-		# self.ReadKeys()
+		self.ReadKeys()
 
 	def to_json( self ) :
 		obj = {
@@ -84,12 +87,15 @@ class TFile (object) :
 		return obj
 
 
+	def list_keys(self) :
+		for k in self.fKeys :
+			print k['fName']
 
 
 	def ReadBuffer( self, place ) :
 		# self.logger.debug( "ReadBuffer( %s )", place )
 		self.fLocalFile.seek( place[0] )
-		return self.fLocalFile.read( place[1] - place[0] )
+		return self.fLocalFile.read( place[1] )
 
 	def GetDir(self, dirname, cycle ):
 		if None == cycle and type(dirname) is str :
@@ -177,7 +183,7 @@ class TFile (object) :
 		if isdir :
 			tdir = TDirectory( self, obj_name, cycle )
 			tdir.fTitle = key['fTitle']
-			return dir.ReadKeys( buf )
+			return tdir.ReadKeys( buf )
 
 		obj = {}
 		buf.MapObject( 1, obj )
@@ -216,7 +222,8 @@ class TFile (object) :
 			# self.logger.info( "LOOP %d", k )
 			# self.logger.info( json.dumps( self, indent=4, sort_keys=True ) )
 			si = lst['arr'][k]
-			if None == si['fElements'] :
+			
+			if 'fElements' not in si or None == si['fElements'] :
 				continue
 
 			for l in range( 0, len(si['fElements']['arr']) ) :
@@ -377,12 +384,16 @@ class TFile (object) :
 		fullname = classname
 		streamer = None 
 
+		if "TH1" == classname :
+    			self.logger.debug("TH1")
+
 		if None != ver and ( 'checksum' in ver or 'val' in ver ) :
 			fullname += "$chksum" + str(ver['checksum']) if 'checksum' in ver else "$ver" + str(ver['val'])
 			self.logger.info( "Looking for streamer : %s",fullname )
 			streamer = self.fStreamers[ fullname ] if fullname in self.fStreamers else None
 			if None != streamer :
-				self.logger.info("Found streamer: ", streamer )
+				self.logger.info( "Found Streamer, just trust me" )
+
 				return streamer
 
 		self.logger.debug( "Looking for custom streamer named %s", classname)

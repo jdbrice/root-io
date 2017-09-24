@@ -256,9 +256,11 @@ class ROOT(object):
 						def rcs( buf1, handle ) :
 							return buf1.ClassStreamer( {}, handle['classname'] )
 						obj[ member['name'] ] = buf.ReadNdimArray( member, rcs )
+					member['func'] = func
 				else :
 					def func( buf, obj ) :
 						obj[ member['name'] ] = buf.ClassStreamer( {}, member['classname'] )
+					member['func'] = func
 
 		# Skip - need to fill in
 		if t == ROOT.IO.kTString:

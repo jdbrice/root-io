@@ -15,7 +15,7 @@ class TBuffer(object):
 	def __init__( self, arr, pos, file, length=None ):
 
 		self.logger = logging.getLogger( "rootio.TBuffer" )
-		# self.logger.debug( "Creating TBuffer[ len(arr)=%d, pos=%d, file=%s ] %s", len(arr), pos, file.fURL, self )
+		self.logger.debug( "Creating TBuffer[ len(arr)=%d, pos=%d, file=%s ] %s", len(arr), pos, file.fURL, self )
 
 		self._typename = "TBuffer"
 		self.arr = arr;
@@ -108,32 +108,32 @@ class TBuffer(object):
 		return ReadFastString(-1)
 
 	def ReadTString(self) :
-		# self.logger.debug( "ReadTString()" )
-		# self.logger.debug( "state = %s", self.dump_state() )
+		self.logger.debug( "ReadTString()" )
+		self.logger.debug( "state = %s", self.dump_state() )
 
 		l = self.ntou1()
 		if 255 == l :
 			l = self.ntou4()
 		if 0 == l :
-			# self.logger.debug( "TString length is 0" )
+			self.logger.debug( "TString length is 0" )
 			return ""
 
-		# self.logger.debug( "TString shift=%d", l )
+		self.logger.debug( "TString shift=%d", l )
 		pos = self.o
 		self.shift( l )
 
 		if 0 == self.codeAt( pos ) :
-			# self.logger.debug( "TString is empty " )
+			self.logger.debug( "TString is empty " )
 			return ''
 		tstring = self.substring( pos, pos + l )
-		# self.logger.debug( "TString = %s", tstring )
+		self.logger.debug( "TString = %s", tstring )
 		return tstring
 
 	def ReadFastString(self, n) :
 		"""
 		Reads a string of n chars or if n < 0 then it reads until it gets 0
 		"""
-		# self.logger.debug( "ReadFastString( %d )", n )
+		self.logger.debug( "ReadFastString( %d )", n )
 		res = ""
 		closed = False
 		
@@ -146,7 +146,7 @@ class TBuffer(object):
 					break
 			if False == closed :
 				res += chr( code )
-		# self.logger.debug( "String=%s", res )
+		self.logger.debug( "String=%s", res )
 		return res
 
 
@@ -241,7 +241,7 @@ class TBuffer(object):
 
 
 	def ReadFastArray( self, n, array_type ) :
-		# self.logger.debug( "ReadFastArray( n=%d, array_type=%s)", n, array_type )
+		self.logger.debug( "ReadFastArray( n=%d, array_type=%s)", n, array_type )
 		
 		i = 0
 		o = self.o
@@ -282,7 +282,7 @@ class TBuffer(object):
 		else :
 			self.logger.error( "FUNC Should not be NONE" )
 		
-		# self.logger.debug( "ReadFastArray() = %s", array )
+		self.logger.debug( "ReadFastArray() = %s", array )
 
 		
 		# self.o = o not a mistake - dont uncomment
@@ -300,7 +300,7 @@ class TBuffer(object):
 			n_dim -= 1
 
 		if n_dim < 1 :
-			return runc( self, handle )
+			return func( self, handle )
 
 		if 1 == n_dim :
 			res = [None] * max_i[0]
@@ -339,11 +339,11 @@ class TBuffer(object):
 		if None == self.arr or False == self.can_extract( place ) :
 			return None
 		if 2 == len(place) :
-			return self.arr[ place[0] : place[1] ]
+			return self.arr[ place[0] : place[0] + place[1] ]
 
 		res = []
 		for n in range( 0, len(place), 2 ) :
-			res[ n/2 ] = self.arr[ place[n] : place[n+1] ]
+			res[ n/2 ] = self.arr[ place[n] : place[n] + place[n+1] ]
 		return res
 
 	def codeAt(self, pos ) :
@@ -367,58 +367,58 @@ class TBuffer(object):
 		return key;
 
 	def ReadClass( self ) :
-		# self.logger.debug( "ReadClass" )
-		# self.logger.debug( "state = %s", self.dump_state() )
+		self.logger.debug( "ReadClass" )
+		self.logger.debug( "state = %s", self.dump_state() )
 		
 		class_info = { 'name': -1 }
 		tag = 0
 		bcount = self.ntou4()
 		start_pos = self.o
-		# self.logger.debug( "bcount=%d, start_pos=%d", bcount,start_pos )
+		self.logger.debug( "bcount=%d, start_pos=%d", bcount,start_pos )
 
 		if  not ( bcount & ROOT.IO.kByteCountMask ) or ( bcount == ROOT.IO.kNewClassTag ) :
-			# self.logger.debug( "ReadClass.A" )
+			self.logger.debug( "ReadClass.A" )
 			tag = bcount
 			bcount = 0
 		else :
-			# self.logger.debug( "ReadClass.B" )
+			self.logger.debug( "ReadClass.B" )
 			tag = self.ntou4()
 
 		if not (tag & ROOT.IO.kClassMask) :
-			# self.logger.debug( "ReadClass.C" )
+			self.logger.debug( "ReadClass.C" )
 			class_info['objtag'] = tag + self.fDisplacement
 			return class_info
 		
 		if tag == ROOT.IO.kNewClassTag :
-			# self.logger.debug( "ReadClass.D" )
+			self.logger.debug( "ReadClass.D" )
 			class_info['name'] = self.ReadFastString( -1 )
 			
 			index = self.fTagOffset + start_pos + ROOT.IO.kMapOffset
 			if self.GetMappedClass( index ) == -1 :
 				self.MapClass( index, class_info['name'] )
-				# self.logger.debug( "ReadClass.E" )
+				self.logger.debug( "ReadClass.E" )
 		else :
-			# self.logger.debug( "ReadClass.F" )
+			self.logger.debug( "ReadClass.F" )
 			clTag = (tag & ~ROOT.IO.kClassMask) + self.fDisplacement
 			class_info['name'] = self.GetMappedClass( clTag )
 
 		if -1 == class_info['name'] :
-			# self.logger.debug( "ReadClass.G" )
+			self.logger.debug( "ReadClass.G" )
 			self.logger.warn( "Could not find class with tag %s",clTag )
 
-		# self.logger.debug( "class_info=%s", class_info )
+		self.logger.debug( "class_info=%s", class_info )
 		return class_info
 
 
 
 	def ReadObjectAny( self ) :
-		# self.logger.debug( "ReadObjectAny" )
-		# self.logger.debug( "state = %s", self.dump_state() )
+		self.logger.debug( "ReadObjectAny" )
+		self.logger.debug( "state = %s", self.dump_state() )
 
 		objtag = self.fTagOffset + self.o + ROOT.IO.kMapOffset
 		clRef = self.ReadClass()
 
-		# self.logger.debug( "clRef = %s", clRef )
+		self.logger.debug( "clRef = %s", clRef )
 
 		if 'objtag' in clRef :
 			return self.GetMappedObject( clRef['objtag'] )
@@ -444,7 +444,7 @@ class TBuffer(object):
 
 
 	def ClassStreamer( self, obj, classname ) :
-		# self.logger.debug( "ClassStreamer(%s, %s)", obj, classname )
+		self.logger.debug( "ClassStreamer(%s, %s)", obj, classname )
 		
 		# if "_typename" in obj :
 		try :
@@ -457,7 +457,7 @@ class TBuffer(object):
 
 		ds = ROOT.IO.DirectStreamers[classname] if classname in ROOT.IO.DirectStreamers else None
 		if None != ds :
-			# self.logger.debug( 'Calling DirectStreamer["%s"]', classname )
+			self.logger.debug( 'Calling DirectStreamer["%s"]', classname )
 			ds( self, obj )
 			return obj
 
@@ -466,7 +466,7 @@ class TBuffer(object):
 		
 
 		ver = self.ReadVersion()
-		# self.logger.debug( "[%s] ver: %s", classname , ver )
+		self.logger.debug( "[%s] ver: %s", classname , ver )
 		streamer = self.fFile.GetStreamer( classname, ver )
 		if None != streamer :
 			for n in range( 0, len( streamer ) ) :
@@ -478,7 +478,7 @@ class TBuffer(object):
 			self.logger.debug( "ClassStreamer not implemented yet for ", classname  )
 			# TODO: Add Methods
 
-		# self.logger.debug( "streamer: \n %s", json.dumps(streamer, indent=4) )
+		self.logger.debug( "streamer: \n %s", streamer )
 		self.CheckByteCount( ver, classname )
 
 		return obj

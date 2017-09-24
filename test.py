@@ -10,19 +10,31 @@ from rootio.TFile import  TFile
 import json
 import rootio.make_json_serializable
 import logging
+import sys
 
-logging.basicConfig(filename='example.log',level=logging.INFO, filemode="w")
+logging.basicConfig(filename='example.log',level=logging.DEBUG, filemode="w")
 
-tfile = TFile( "mtd_gpid_8.root" )
-tfile.ReadKeys()
+if ( len(sys.argv) < 2 ) :
+	exit()
+
+tfile = TFile( sys.argv[1] )
+# tfile.ReadKeys()
 
 logging.info( "TFile after reading Keys" )
 logging.info( json.dumps( tfile, indent=4, sort_keys=True ) )
+for k in tfile["fKeys"] :
+	print k['fName']
+
+
 # logging.info( json.dumps(tfile.fkeys, indent=4) )
 
-# obj = tfile.ReadObject( "mtd_8_DeltaY_vs_BL" )
+if  len(sys.argv) < 3 :
+	exit()
 
-# logging.debug( "obj = %s", obj )
+print "READING OBJECT", sys.argv[2] 
+obj = tfile.ReadObject( sys.argv[2] )
+
+print "%s" % (json.dumps(obj, indent=True) )
 
 
 
