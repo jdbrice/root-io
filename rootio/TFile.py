@@ -7,7 +7,7 @@ from . import UnZip
 import box 
 import json
 
-from rootio.Histogram import Histogram
+
 
 
 class TFile (object) :
@@ -151,6 +151,7 @@ class TFile (object) :
 			return None
 
 		try :
+			from rootio.Histogram import Histogram
 			if "TH1" in obj['_typename'] or "TH2" in obj['_typename'] or "TH3" in obj['_typename'] :
 				return Histogram( obj )
 		except KeyError as ke :
@@ -283,8 +284,8 @@ class TFile (object) :
 				if None != typename and None != typ :
 					# self.logger.debug( "Extract basic data type %s %s", typ, typename )
 					self.fBasicTypes[ typename ] = typ
-		self.logger.info( "after extracting streamer info:" )
-		self.logger.info( json.dumps( self, indent=4, sort_keys=True ) )
+		# self.logger.info( "after extracting streamer info:" )
+		# self.logger.info( json.dumps( self, indent=4, sort_keys=True ) )
 
 	def __getitem__(self, key):
 		return getattr(self, key)
@@ -362,8 +363,8 @@ class TFile (object) :
 		buf3.locate( self.fNbytesName )
 		buf3.ClassStreamer( self, 'TDirectory' )
 
-		self.logger.info( "file now:" )
-		self.logger.info( json.dumps(self, indent=4, sort_keys=True) )
+		# self.logger.info( "file now:" )
+		# self.logger.info( json.dumps(self, indent=4, sort_keys=True) )
 
 		if False == hasattr( self, 'fSeekKeys' ) or 0 == self.fSeekKeys :
 			# self.logger.debug( "Empty key list in", self.fURL )
@@ -393,7 +394,7 @@ class TFile (object) :
 			self.ExtractStreamerInfos( buf6 )
 
 	def GetStreamer(self, classname, ver, s_i = None ):
-		self.logger.info( "GetStreamer(classname=%s, ver=%s, s_i=%s )", classname, ver, s_i )
+		self.logger.debug( "GetStreamer(classname=%s, ver=%s, s_i=%s )", classname, ver, s_i )
 		if 'TQObject' == classname or 'TBasket' == classname :
 			return None
 
@@ -405,10 +406,10 @@ class TFile (object) :
 
 		if None != ver and ( 'checksum' in ver or 'val' in ver ) :
 			fullname += "$chksum" + str(ver['checksum']) if 'checksum' in ver else "$ver" + str(ver['val'])
-			self.logger.info( "Looking for streamer : %s",fullname )
+			self.logger.debug( "Looking for streamer : %s",fullname )
 			streamer = self.fStreamers[ fullname ] if fullname in self.fStreamers else None
 			if None != streamer :
-				self.logger.info( "Found Streamer, just trust me" )
+				self.logger.debug( "Found Streamer, just trust me" )
 
 				return streamer
 
@@ -456,7 +457,7 @@ class TFile (object) :
 			self.logger.debug( "No fElements.arr" )
 		self.logger.debug( "fStreamers[%s] = %s", fullname, streamer )
 		
-		self.logger.info( "fStreamers[%s] = SET", fullname )
+		self.logger.debug( "fStreamers[%s] = SET", fullname )
 		self.fStreamers[fullname] = streamer;
 
 		return ROOT.AddClassMethods(classname, streamer);

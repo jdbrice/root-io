@@ -10,6 +10,7 @@ import logging
 from . import DirectStreamers
 from . import CustomStreamers
 from . import UnZip
+import json
 
 def BIT( n ) :
 	return (1 << n)
@@ -161,6 +162,7 @@ class ROOT(object):
 			if element['fArrayDim'] < 2 :
 				member['arrlength'] = element['fArrayLength']
 				def func( buf, obj ) :
+					ROOT.getLogger("memberL").info( "member %s", member )
 					obj[member['name']] = buf.ReadFastArray( member['arrlength'], member['type'] - ROOT.IO.kOffsetL )
 				member[ 'func' ] = func
 			else :
@@ -169,6 +171,7 @@ class ROOT(object):
 
 				def rnda( buf, obj ) :
 					def rfa( buf1, handle ) :
+						ROOT.getLogger("memberL").info( "member %s", member )
 						return buf1.ReadFastArray( handle['arrlength'], handle['type'] - ROOT.IO.kOffsetL )
 
 					obj[member['name']] = buf.ReadNdimArray( member, rfa )
@@ -198,6 +201,7 @@ class ROOT(object):
 			def func( buf, obj ) :
 				v = buf.ntou1()
 				if 1 == v :
+					# ROOT.getLogger("memberL").info( "obj \n%s, member \n%s ", json.dumps( {k:v for k, v in obj.iteritems() if k is not "func"} , indent=4), json.dumps({k:v for k, v in member.iteritems() if k is not "func"}, indent=4) )
 					obj[ member['name'] ] = buf.ReadFastArray( obj[ member['cntname'] ], member['type'] - ROOT.IO.kOffsetP )
 				else :
 					obj[ member['name'] ] = []
@@ -390,6 +394,11 @@ class ROOT(object):
 			"TStreamerObjectPointer" : CustomStreamers.TStreamerObject,
 			"TStreamerBasicPointer" : CustomStreamers.TStreamerBasicPointer,
 			"TStreamerLoop" : CustomStreamers.TStreamerBasicPointer,
+			"TStreamerSTL" : CustomStreamers.TStreamerSTL,
+			"TObjString" : [
+				{ "basename" : "TObject", "base" : 1, "func" : CustomStreamers.TObjString_TObject },
+				{ "name" : "fString", "func" : CustomStreamers.TObjString_fString }
+			]
 
 
 

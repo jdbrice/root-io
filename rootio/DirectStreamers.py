@@ -24,12 +24,12 @@ def TKey( buf, key ) :
 	ROOT.ROOT.logger.debug( "TKey( buf=%s, key=%s )", buf, key )
 
 def TDatime( buf, key ) :
-	ROOT.ROOT.getLogger("DirectStreamers.TDatime").info( "( buf=%s, obj=%s )", buf, key )
+	ROOT.ROOT.getLogger("DirectStreamers.TDatime").debug( "( buf=%s, obj=%s )", buf, key )
 	key['fDatime'] = buf.ntou4()
-	ROOT.ROOT.getLogger("DirectStreamers.TDatime").info( "AFTER( buf=%s, obj=%s )", buf, key )
+	ROOT.ROOT.getLogger("DirectStreamers.TDatime").debug( "AFTER( buf=%s, obj=%s )", buf, key )
 
 def TDirectory( buf, obj ) :
-	ROOT.ROOT.getLogger("DirectStreamers.TDirectory").info( "( buf=%s, obj=%s )", buf, obj )
+	ROOT.ROOT.getLogger("DirectStreamers.TDirectory").debug( "( buf=%s, obj=%s )", buf, obj )
 	
 	version            = buf.ntou2()
 	obj['fDatimeC']    = buf.ClassStreamer({}, 'TDatime')
@@ -40,6 +40,6 @@ def TDirectory( buf, obj ) :
 	obj['fSeekParent'] = buf.ntou8() if version > 1000 else buf.ntou4()
 	obj['fSeekKeys']   = buf.ntou8() if version > 1000 else buf.ntou4()
 
-	ROOT.ROOT.getLogger("DirectStreamers.TDirectory").info( "( buf=%s, obj=%s )", buf, obj )
+	ROOT.ROOT.getLogger("DirectStreamers.TDirectory").debug( "( buf=%s, obj=%s )", buf, obj )
 
 	

@@ -87,11 +87,18 @@ class Histogram(object) :
 		return bw
 
 	def calc_ndarray(self) :
-		self.ndv = np.empty( shape=(self.n_bins_x, self.n_bins_y) )
 
-		for x in np.arange( 0, self.n_bins_x ) :
-			for y in np.arange( 0, self.n_bins_y ) :
-				self.ndv[x][y] = self.value_at_index( x+1, y+1 )
+		if 1 == self.n_dim :
+			self.ndv = np.empty( shape=(self.n_bins_x) )
+			for x in np.arange( 0, self.n_bins_x ) :
+				self.ndv[x] = self.value_at_index( x+1 )
+
+		if 2 == self.n_dim :
+			self.ndv = np.empty( shape=(self.n_bins_y, self.n_bins_x) )
+
+			for x in np.arange( 0, self.n_bins_x ) :
+				for y in np.arange( 0, self.n_bins_y ) :
+					self.ndv[y][x] = self.value_at_index( x+1, y+1 )
 
 	def value_at_index( self, x, y = None, z = None, **kwargs ) :
 		if 1 == self.n_dim or None == y :

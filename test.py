@@ -20,24 +20,23 @@ if ( len(sys.argv) < 2 ) :
 tfile = TFile( sys.argv[1] )
 # tfile.ReadKeys()
 
-logging.info( "TFile after reading Keys" )
-logging.info( json.dumps( tfile, indent=4, sort_keys=True ) )
+# logging.info( "TFile after reading Keys" )
+# logging.info( json.dumps( tfile, indent=4, sort_keys=True ) )
 for k in tfile["fKeys"] :
 	print k['fName']
 
 
 # logging.info( json.dumps(tfile.fkeys, indent=4) )
 
-if  len(sys.argv) < 3 :
-	exit()
+if  len(sys.argv) >= 3 :
+	print "READING OBJECT", sys.argv[2] 
+	obj = tfile.ReadObject( sys.argv[2] )
 
-print "READING OBJECT", sys.argv[2] 
-obj = tfile.ReadObject( sys.argv[2] )
+	print "hello danny"
+	# print "%s" % (json.dumps(obj, indent=True) )
 
-print "%s" % (json.dumps(obj, indent=True) )
-
-hist = tfile.Get( sys.argv[2] )
-print "hist ndim =", hist.n_dim
+	# hist = tfile.Get( sys.argv[2] )
+	# print "hist ndim =", hist.n_dim
 
 
 

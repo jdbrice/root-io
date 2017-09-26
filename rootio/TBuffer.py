@@ -166,14 +166,14 @@ class TBuffer(object):
 			l = lens[ code ]
 			v = struct.unpack( fc, self.arr[ self.o : self.o + l ] )
 			self.o += l
-			return v
+			return v[0]
 		except KeyError :
 			pass 
 
 		if "U" == code :
-			return ntou8()
+			return self.ntou8()
 		if "u" == code :
-			return ntoi8()
+			return self.ntoi8()
 
 		return None
 
@@ -243,6 +243,9 @@ class TBuffer(object):
 	def ReadFastArray( self, n, array_type ) :
 		self.logger.debug( "ReadFastArray( n=%d, array_type=%s)", n, array_type )
 		
+		if type(n) not in ( int, long ) :
+    			pass
+
 		i = 0
 		o = self.o
 		view = self.arr
@@ -446,6 +449,9 @@ class TBuffer(object):
 	def ClassStreamer( self, obj, classname ) :
 		self.logger.debug( "ClassStreamer(%s, %s)", obj, classname )
 		
+		if "TBranchElement" == classname :
+			pass
+
 		# if "_typename" in obj :
 		try :
 			self.logger.debug( "obj._typename=%s", obj['_typename'] )
@@ -472,6 +478,7 @@ class TBuffer(object):
 			for n in range( 0, len( streamer ) ) :
 				if 'func' in streamer[n] and callable( streamer[n]['func'] ) :
 					streamer[n]['func']( self, obj )
+					# self.logger.info( "%s", json.dumps( obj, indent=4 ) )
 				else :
 					self.logger.debug( "hmm, should be callable for classname=%s, obj=%s", classname, obj )
 		else :

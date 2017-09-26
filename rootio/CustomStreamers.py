@@ -185,3 +185,24 @@ def TStreamerObject( buf, obj ) :
 	ROOT.ROOT.getLogger( "CustomStreamers.TStreamerObject" ).debug( "( buf=%s, obj=%s )", buf, obj )
 	if buf.last_read_version > 1 :
 		buf.ClassStreamer( obj, "TStreamerElement")
+def TStreamerSTL( buf, obj ) :
+	buf.ClassStreamer( obj, "TStreamerElement" )
+	obj['fSTLtype'] = buf.ntou4()
+	obj['fCtype'] = buf.ntou4()
+
+	# if I believe the original source, these are not typos
+	if ROOT.ROOT.IO.kSTLmultimap == obj['fSTLtype'] and (obj['fTypeName'].find( "set" ) == 0 or obj['fTypeName'].find( "std::set" ) == 0 ) :
+		obj['fSTLtype'] = ROOT.ROOT.IO.kSTLset
+	if ROOT.ROOT.IO.kSTLset == obj['fSTLtype'] and (obj['fTypeName'].find( "multimap" ) == 0 or obj['fTypeName'].find( "std::multimap" ) == 0 ) :
+		obj['fSTLtype'] = ROOT.ROOT.IO.kSTLmultimap
+
+
+def TObjString_TObject( buf, obj ) :
+	try :
+		a = obj['_typename']
+	except KeyError as ke :
+		obj['_typename'] = 'TObjString'
+	buf.ClassStreamer( obj, 'TObject' )
+def TObjString_fString( buf, obj ) :
+	obj['fString'] = buf.ReadTString()
+
