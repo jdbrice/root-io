@@ -1,5 +1,5 @@
 
-from TBuffer import TBuffer
+from .TBuffer import TBuffer
 
 
 class TDirectory (object) :

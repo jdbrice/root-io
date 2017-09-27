@@ -1,5 +1,5 @@
 
-import ROOT
+from . import ROOT
 import zlib
 import gzip
 try:
@@ -15,7 +15,7 @@ def R__unzip( arr, tgtsize, src_shift = 0 ) :
 	tgtbuf = None
 
 	while fullres < tgtsize :
-    		ROOT.ROOT.getLogger("R__unzip").info( "curr=%d", curr )
+		ROOT.ROOT.getLogger("R__unzip").info( "curr=%d", curr )
 		fmt = "unknown"
 		off = 0
 		headersize = 9

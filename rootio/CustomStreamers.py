@@ -1,5 +1,5 @@
 
-import ROOT
+from . import ROOT
 import math
 import json
 

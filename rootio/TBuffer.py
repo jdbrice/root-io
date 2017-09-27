@@ -2,7 +2,7 @@
 # @Author: jdb
 # @Date:   2017-06-14 17:36:08
 # @Last Modified by:   Daniel
-# @Last Modified time: 2017-09-21 10:47:20
+# @Last Modified time: 2017-09-26 17:47:21
 
 from rootio.ROOT import ROOT as ROOT
 import struct
@@ -41,8 +41,8 @@ class TBuffer(object):
 			"last_read_version" : self.last_read_version,
 			"fObjectMap" : self.fObjectMap,
 			"fDisplacement" : self.fDisplacement
- 		}
- 		return obj
+		}
+		return obj
 
 	def dump_state( self ) :
 		m = {
@@ -244,7 +244,7 @@ class TBuffer(object):
 		self.logger.debug( "ReadFastArray( n=%d, array_type=%s)", n, array_type )
 		
 		if type(n) not in ( int, long ) :
-    			pass
+			pass
 
 		i = 0
 		o = self.o
