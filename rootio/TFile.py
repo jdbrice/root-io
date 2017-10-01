@@ -107,8 +107,6 @@ class TFile (object) :
 			tdir = self.fDirectories[j]
 			if tdir.dir_name != dirname :
 				continue
-			if None != cycle and tdir.cycle != cycle :
-				continue
 			return tdir
 		return None
 
@@ -116,6 +114,27 @@ class TFile (object) :
 		for i in range( 0, len(self.fKeys) ) :
 			if 'fName' in self.fKeys[i] and self.fKeys[i]['fName'] == keyname and 'fCycle' in self.fKeys[i] and self.fKeys[i]['fCycle'] == cycle :
 				return  self.fKeys[i]
+		
+		# look for directories
+		pos = keyname.rfind( '/' )
+
+		while pos > 0 :
+			dirname = keyname[0:pos]
+			subname = keyname[pos+1:]
+			
+			tdir = self.GetDir( dirname, 1 )
+			if None != tdir :
+				return tdir.GetKey( subname, cycle )
+			
+			dirkey = self.GetKey( dirname, 1 )
+			
+			if None != dirkey and "fClassName" in dirkey and "TDirectory" in dirkey['fClassName'] :
+				tdir = self.ReadObject( dirname )
+				if None != tdir :
+					return tdir.GetKey( subname, cycle )
+			
+			pos = keyname.rfind( '/', 0, pos-1 )
+		
 		return None
 		#TODO : add second part of impl
 
@@ -198,7 +217,8 @@ class TFile (object) :
 		if isdir :
 			tdir = TDirectory( self, obj_name, cycle )
 			tdir.fTitle = key['fTitle']
-			return tdir.ReadKeys( buf )
+			tdir.ReadKeys( buf )
+			return tdir
 
 		obj = {}
 		buf.MapObject( 1, obj )

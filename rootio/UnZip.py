@@ -46,9 +46,6 @@ def R__unzip( arr, tgtsize, src_shift = 0 ) :
 
 		srcsize = headersize + ((getCode(arr, curr+3) & 0xff) | ((getCode(arr, curr+4) & 0xff) << 8) | ((getCode(arr, curr+5) & 0xff) << 16));
 		uint8arr = arr[ curr + headersize + off :  ]
-		
-		with open("compressedobj.gzip", 'wb') as output:
-			output.write( arr )
 
 		# The -15 is a hack to get it to ignore the header and stream info since this is a raw chunk
 		tgtbuf = zlib.decompress( uint8arr, -zlib.MAX_WBITS )
