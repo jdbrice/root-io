@@ -33,7 +33,7 @@ if  len(sys.argv) >= 3 :
 	obj = tfile.ReadObject( sys.argv[2] )
 
 	print "hello danny"
-	# print "%s" % (json.dumps(obj, indent=True) )
+	print "%s" % (json.dumps(obj, indent=True) )
 
 	# hist = tfile.Get( sys.argv[2] )
 	# print "hist ndim =", hist.n_dim

@@ -1,84 +1,152 @@
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
+import copy
 
 class Histogram(object) :
 
-	def __init__(self, hist_obj) :
+	def __init__(self, hist_obj=None) :
 		self.logger = logging.getLogger( "rootio.TFile" )
-		self.raw_hist = hist_obj
-		self.n_dim = self.calc_n_dim()
 		
+		# disctionary of edges for axes
+		self.edges = {}
+		self.centers = {}
+		self.widths = {}
+		self.n_bins = {}
+		self.mean = {}
+		# nd array of values
+		self.vals = None
+		
+		if None  != hist_obj :
+			self.build( hist_obj )
+	
+	def clone(self) :
+		nh = Histogram()
+		nh.edges = copy.deepcopy( self.edges )
+		nh.centers = copy.deepcopy( self.centers )
+		nh.widths = copy.deepcopy( self.widths )
+		nh.n_bins = copy.deepcopy( self.n_bins )
+		nh.mean = copy.deepcopy( self.mean )
+		nh.vals = copy.deepcopy( self.vals )
+		nh.n_dim = self.n_dim
+
+		return nh
+	def __add__(self, other) :
+		# now assume binning is the same!
+		if self.vals.shape == other.vals.shape :
+			nh = self.clone()
+
+			for i in np.arange( 0, len(self.vals) ) :
+				nh.vals[i] = self.vals[i]+other.vals[i]
+			return nh
+		return None
+
+	@staticmethod
+	def add( a, b, scale_a=1.0, scale_b=1.0 ) :
+		ac = a.clone()
+		bc = b.clone()
+		ac.scale(scale_a)
+		bc.scale(scale_b)
+		nh = ac+bc
+		return nh
+
+
+	def scale(self, factor=1.0) :
+		self.vals = self.vals * factor
+
+	def build( self, root_hist_obj ) :
+		# make the edges first
+		for axis in ["x", "y", "z" ] : 
+			self.make_axis( root_hist_obj, axis=axis )
+		self.n_dim = sum( len(self.edges[k]) > 1 for k in self.edges )
+		self.calc_ndarray( root_hist_obj )
+
+		for axis in ["x", "y", "z" ] : 
+			self.mean[axis] = self.make_mean( axis = axis )
+
+
+	def make_axis( self, h_obj, **kwargs ) :
+		axis = kwargs.get( "axis", "x" )
+		self.edges[axis] = self.make_edges( h_obj, axis=axis )
+		self.centers[axis] = self.make_centers( axis=axis )
+		self.widths[axis] = self.make_widths( axis=axis )
+		self.n_bins[axis] = len( self.centers[axis] )
+
+	def make_edges(self, h_obj, **kwargs) :
+		axis = kwargs.get( "axis", "x" )
+
+		bin_edges = np.array([])
+		nbins = 0
+		bmin = 0
+		bmax = 0
 		try :
-			self.values = np.array( self.raw_hist['fArray'] )
+			nbins = h_obj[ 'f' + axis.upper() + "axis" ]["fNbins"] 
+			bmin = h_obj[ 'f' + axis.upper() + "axis" ]["fXmin"]
+			bmax = h_obj[ 'f' + axis.upper() + "axis" ]["fXmax"]
+			bins = h_obj[ 'f' + axis.upper() + "axis" ]["fXbins"]
 		except KeyError as ke :
 			pass
 
-		self.calc_ndarray()
+		if len(bins) <= 1 :
+    			if 1 == nbins : 
+					return np.array([])
+			bin_edges = np.zeros( nbins+1 )
+			bw = (bmax - bmin) / nbins
+			self.logger.debug("n=%d, (%f, %f), w=%f", nbins, bmin, bmax, bw )
+			for i in np.arange( 0, nbins ) : 
+				bin_edges[ i ] = bw * i + bmin
 
+			bin_edges[ nbins ] = bmax
+			return bin_edges
+		return np.array(bins)
 
-	def calc_n_dim(self) :
-		nd = 0;
-		if None == self.raw_hist :
-			return nd
-		try :
-			self.logger.info( 'xBins: %d, yBins:%d, zBins:%d', self.raw_hist['fXaxis']['fNbins'][0], self.raw_hist['fYaxis']['fNbins'][0], self.raw_hist['fZaxis']['fNbins'][0]  )
-			
-			self.n_bins_x = self.raw_hist['fXaxis']['fNbins'][0]
-			self.n_bins_y = self.raw_hist['fYaxis']['fNbins'][0]
-			self.n_bins_z = self.raw_hist['fZaxis']['fNbins'][0]
-
-			if self.raw_hist['fXaxis']['fNbins'][0] > 1 :
-				nd = nd + 1
-			
-			if self.raw_hist['fYaxis']['fNbins'][0] > 1 :
-				nd = nd + 1
-			
-			if self.raw_hist['fZaxis']['fNbins'][0] > 1 :
-				nd = nd + 1
-
-		except KeyError as ke :
-			print "Histogram should have axes", ke
-
-		return nd
-
-	def edges( self, **kwargs ) :
+	def get_edges( self, **kwargs ) :
 		axis = kwargs.get( "axis", "x" )
-		side = kwargs.get( "side", "left" )
-
-		try :
-			bins = self.raw_hist[ 'f' + axis.upper() + "axis" ]["fXbins"]
-		except KeyError as ke :
-			return np.array([])
-			
-		if "right" == side :
-			return np.array( bins[1:] )
+		place = kwargs.get( "place", "left" )
 		
-		return np.array( bins[:-1] )
+		if "right" == place :
+			return self.edges[axis][1:]
+		if "center" == place :
+			return self.centers[axis];
 
-	def centers( self, **kwargs ) :
+		return self.edges[axis][:-1]
+
+	def make_mean( self, **kwargs ) :
+		axis = kwargs.get( "axis", "x" )
+		if 1 == self.n_dim and 'x' == axis:
+			nsum = 0
+			n = 0;
+			for c, v in zip( self.centers[axis], self.vals ) :
+				n = n + v
+				nsum = nsum + c * v
+			return float( nsum ) / float(n)
+
+
+		
+	def make_centers( self, **kwargs ) :
 		axis = kwargs.get( "axis", "x" )
 
-		try :
-			bins = self.raw_hist[ 'f' + axis.upper() + "axis" ]["fXbins"]
-		except KeyError as ke :
+		#  may throw a KeyError if not found
+		bins = self.edges[ axis ]
+		if len(bins) < 2 :
 			return np.array([])
 
 		bc = np.empty( shape=(len(bins)-1) )
+
 		for i in np.arange( 0, len(bins)-1 ) :
 			x1 = bins[i]
 			x2 = bins[i+1]
 			bc[i] = (x1 + x2) / 2.0
+
 		return bc
 
-	def widths( self, **kwargs ) :
+	def make_widths( self, **kwargs ) :
 		axis = kwargs.get( "axis", "x" )
 
-		try :
-			bins = self.raw_hist[ 'f' + axis.upper() + "axis" ]["fXbins"]
-		except KeyError as ke :
+		bins = self.edges[axis]
+		if len(bins) < 2 :
 			return np.array([])
-
+		
 		bw = np.empty( shape=(len(bins)-1) )
 		for i in np.arange( 0, len(bins)-1 ) :
 			x1 = bins[i]
@@ -86,39 +154,43 @@ class Histogram(object) :
 			bw[i] = (x2 - x1)
 		return bw
 
-	def calc_ndarray(self) :
+	def calc_ndarray(self, root_hist_obj) :
 
 		if 1 == self.n_dim :
-			self.ndv = np.empty( shape=(self.n_bins_x) )
-			for x in np.arange( 0, self.n_bins_x ) :
-				self.ndv[x] = self.value_at_index( x+1 )
+			self.vals = np.empty( shape=(self.n_bins['x']) )
+			for x in np.arange( 0, self.n_bins['x'] ) :
+				self.vals[x] = self.value_at_index( root_hist_obj ,x+1 )
 
 		if 2 == self.n_dim :
-			self.ndv = np.empty( shape=(self.n_bins_y, self.n_bins_x) )
+			self.vals = np.empty( shape=(self.n_bins_y, self.n_bins['x']) )
 
-			for x in np.arange( 0, self.n_bins_x ) :
-				for y in np.arange( 0, self.n_bins_y ) :
-					self.ndv[y][x] = self.value_at_index( x+1, y+1 )
+			for x in np.arange( 0, self.n_bins['x'] ) :
+				for y in np.arange( 0, self.n_bins['y'] ) :
+					self.vals[y][x] = self.value_at_index( root_hist_obj ,x+1, y+1 )
 
-	def value_at_index( self, x, y = None, z = None, **kwargs ) :
+	def value_at_index( self, h_obj, x, y = None, z = None, **kwargs ) :
+		values = h_obj[ 'fArray' ]
+		
 		if 1 == self.n_dim or None == y :
-			return self.values[x]
+			return values[x]
 		
 		if 2 == self.n_dim and None != x and None != y:
-			w = len(self.edges( axis="x" )) + 2
-			h = len(self.edges( axis="y" )) + 2
+			w = self.n_bins["x"] + 2
+			h = self.n_bins["y"] + 2
 
 			return self.values[ x + y * w ]
 
 		return None
 
 
-	def draw_1d(self, **kwargs) :
-		plt.bar( self.edges(), self.raw_hist['fArray'][1:-1], self.widths(), **kwargs )
+	def draw_1d(self, scale=1.0, **kwargs) :
+		use_bins = kwargs.get( 'bins', self.edges['x'] )
+		kwargs.pop( 'bins', None )
+		plt.hist( self.centers['x'], bins=use_bins, weights=self.vals*scale, **kwargs )
 
 	def draw_2d( self, **kwargs ) :
-		x_bins = self.centers(axis="x")
-		y_bins = self.centers(axis="y")
+		x_bins = self.centers['x']
+		y_bins = self.centers['y']
 
 		vx = np.empty( shape=( len(x_bins) * len(y_bins) ) )
 		vy = np.empty( shape=( len(x_bins) * len(y_bins) ) )
@@ -147,9 +219,9 @@ class Histogram(object) :
 	# def __getitem__(self, key):
 	# 	return self.__getattribute__(key)
 
-	def draw(self, **kwargs) :
+	def draw(self, scale=1.0, **kwargs) :
 		if 1 == self.n_dim : 
-			return self.draw_1d(**kwargs)
+			return self.draw_1d(scale=scale, **kwargs)
 
 		if 2 == self.n_dim : 
 			return self.draw_2d(**kwargs)
