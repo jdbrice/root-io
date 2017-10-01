@@ -156,7 +156,7 @@ def TStreamerElement( buf, element ) :
 	elif (ver > 3) and (element['fBits'] & BIT(6)) : # kHasRange
 
 		p1 = element['fTitle'].find("[");
-		if p1 >= 0 and element['fType'] > ROOT.IO.kOffsetP :
+		if p1 >= 0 and element['fType'] > IOData.kOffsetP :
 			p1 = element['fTitle'].find( "[", p1+1 )
 		
 		p2 = element['fTitle'].find("]", p1+1);
