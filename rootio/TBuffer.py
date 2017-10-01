@@ -5,9 +5,12 @@
 # @Last Modified time: 2017-09-26 17:47:21
 
 from rootio.ROOT import ROOT as ROOT
+from rootio.StreamerDict import Streamers
+from rootio.IOData import IOData
 import struct
 import logging
 import json
+import sys
 
 class TBuffer(object):
 
@@ -80,8 +83,8 @@ class TBuffer(object):
 	def ReadVersion(self):
 		ver = {}
 		bytecount = self.ntou4()
-		if bytecount & ROOT.IO.kByteCountMask :
-			ver['bytecount'] = bytecount - ROOT.IO.kByteCountMask - 2
+		if bytecount & IOData.kByteCountMask :
+			ver['bytecount'] = bytecount - IOData.kByteCountMask - 2
 		else :
 			self.shift( -4 )
 
@@ -242,9 +245,6 @@ class TBuffer(object):
 
 	def ReadFastArray( self, n, array_type ) :
 		self.logger.debug( "ReadFastArray( n=%d, array_type=%s)", n, array_type )
-		
-		if type(n) not in ( int, long ) :
-			pass
 
 		i = 0
 		o = self.o
@@ -252,29 +252,29 @@ class TBuffer(object):
 		array = [None] * n
 		func = None
 		
-		if ROOT.IO.kDouble == array_type :
+		if IOData.kDouble == array_type :
 			func = self.ntod
-		elif ROOT.IO.kFloat == array_type :
+		elif IOData.kFloat == array_type :
 			func = self.ntof
-		elif ROOT.IO.kLong == array_type or ROOT.IO.kLong64 == array_type :
+		elif IOData.kLong == array_type or IOData.kLong64 == array_type :
 			func = self.ntoi8
-		elif ROOT.IO.kULong == array_type or ROOT.IO.kULong64 == array_type :
+		elif IOData.kULong == array_type or IOData.kULong64 == array_type :
 			func = self.ntou8
-		elif ROOT.IO.kInt == array_type or ROOT.IO.kCounter == array_type :
+		elif IOData.kInt == array_type or IOData.kCounter == array_type :
 			func = self.ntoi4
-		elif ROOT.IO.kBits == array_type or ROOT.IO.kUInt == array_type :
+		elif IOData.kBits == array_type or IOData.kUInt == array_type :
 			func = self.ntou4
-		elif ROOT.IO.kShort == array_type :
+		elif IOData.kShort == array_type :
 			func = self.ntoi2
-		elif ROOT.IO.kUShort == array_type :
+		elif IOData.kUShort == array_type :
 			func = self.ntou2
-		elif ROOT.IO.kChar == array_type :
+		elif IOData.kChar == array_type :
 			func = self.ntoi2
-		elif ROOT.IO.kChar == array_type or ROOT.IO.kBool == array_type :
+		elif IOData.kChar == array_type or IOData.kBool == array_type :
 			func = self.ntou2
-		elif ROOT.IO.kTString == array_type :
+		elif IOData.kTString == array_type :
 			func = self.ReadTString
-		elif ROOT.IO.kDouble32 == array_type or ROOT.IO.kFloat16== array_type :
+		elif IOData.kDouble32 == array_type or IOData.kFloat16== array_type :
 			self.logger.error( "Should not be used with FastArray" )
 		else :
 			func = self.ntou4
@@ -350,7 +350,10 @@ class TBuffer(object):
 		return res
 
 	def codeAt(self, pos ) :
-		return struct.unpack( 'B', bytes( [self.arr[ pos ]] ) )[0]
+		if (sys.version_info > (3, 0)):
+			return struct.unpack( 'B', bytes( [self.arr[ pos ]] ) )[0]
+		else :
+			return struct.unpack( 'B', self.arr[ pos ] )[0]
 
 	def substring( self, beg, end ) :
 		res = ""
@@ -379,7 +382,7 @@ class TBuffer(object):
 		start_pos = self.o
 		self.logger.debug( "bcount=%d, start_pos=%d", bcount,start_pos )
 
-		if  not ( bcount & ROOT.IO.kByteCountMask ) or ( bcount == ROOT.IO.kNewClassTag ) :
+		if  not ( bcount & IOData.kByteCountMask ) or ( bcount == IOData.kNewClassTag ) :
 			self.logger.debug( "ReadClass.A" )
 			tag = bcount
 			bcount = 0
@@ -387,22 +390,22 @@ class TBuffer(object):
 			self.logger.debug( "ReadClass.B" )
 			tag = self.ntou4()
 
-		if not (tag & ROOT.IO.kClassMask) :
+		if not (tag & IOData.kClassMask) :
 			self.logger.debug( "ReadClass.C" )
 			class_info['objtag'] = tag + self.fDisplacement
 			return class_info
 		
-		if tag == ROOT.IO.kNewClassTag :
+		if tag == IOData.kNewClassTag :
 			self.logger.debug( "ReadClass.D" )
 			class_info['name'] = self.ReadFastString( -1 )
 			
-			index = self.fTagOffset + start_pos + ROOT.IO.kMapOffset
+			index = self.fTagOffset + start_pos + IOData.kMapOffset
 			if self.GetMappedClass( index ) == -1 :
 				self.MapClass( index, class_info['name'] )
 				self.logger.debug( "ReadClass.E" )
 		else :
 			self.logger.debug( "ReadClass.F" )
-			clTag = (tag & ~ROOT.IO.kClassMask) + self.fDisplacement
+			clTag = (tag & ~IOData.kClassMask) + self.fDisplacement
 			class_info['name'] = self.GetMappedClass( clTag )
 
 		if -1 == class_info['name'] :
@@ -418,7 +421,7 @@ class TBuffer(object):
 		self.logger.debug( "ReadObjectAny" )
 		self.logger.debug( "state = %s", self.dump_state() )
 
-		objtag = self.fTagOffset + self.o + ROOT.IO.kMapOffset
+		objtag = self.fTagOffset + self.o + IOData.kMapOffset
 		clRef = self.ReadClass()
 
 		self.logger.debug( "clRef = %s", clRef )
@@ -430,7 +433,7 @@ class TBuffer(object):
 		if 'name' in clRef and clRef['name'] == -1 :
 			return None
 
-		array_kind = ROOT.IO.GetArrayKind( clRef['name'] )
+		array_kind = ROOT.GetArrayKind( clRef['name'] )
 		obj = None
 
 		if 0 == array_kind :
@@ -460,8 +463,8 @@ class TBuffer(object):
 		# if False == hasattr(obj, '_typename' ) or None == obj['_typename'] :
 		# if '_typename' not in obj :
 		
-
-		ds = ROOT.IO.DirectStreamers[classname] if classname in ROOT.IO.DirectStreamers else None
+		DirectStreamers = Streamers.DirectStreamers
+		ds = DirectStreamers[classname] if classname in DirectStreamers else None
 		if None != ds :
 			self.logger.debug( 'Calling DirectStreamer["%s"]', classname )
 			ds( self, obj )

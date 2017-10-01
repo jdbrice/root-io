@@ -88,8 +88,8 @@ class Histogram(object) :
 			pass
 
 		if len(bins) <= 1 :
-    			if 1 == nbins : 
-					return np.array([])
+			if 1 == nbins : 
+				return np.array([])
 			bin_edges = np.zeros( nbins+1 )
 			bw = (bmax - bmin) / nbins
 			self.logger.debug("n=%d, (%f, %f), w=%f", nbins, bmin, bmax, bw )
@@ -162,7 +162,7 @@ class Histogram(object) :
 				self.vals[x] = self.value_at_index( root_hist_obj ,x+1 )
 
 		if 2 == self.n_dim :
-			self.vals = np.empty( shape=(self.n_bins_y, self.n_bins['x']) )
+			self.vals = np.empty( shape=(self.n_bins['y'], self.n_bins['x']) )
 
 			for x in np.arange( 0, self.n_bins['x'] ) :
 				for y in np.arange( 0, self.n_bins['y'] ) :
@@ -178,7 +178,7 @@ class Histogram(object) :
 			w = self.n_bins["x"] + 2
 			h = self.n_bins["y"] + 2
 
-			return self.values[ x + y * w ]
+			return values[ x + y * w ]
 
 		return None
 
@@ -204,7 +204,7 @@ class Histogram(object) :
 			for y in y_bins :
 				vx[i] = x
 				vy[i] = y
-				vw[i] = self.value_at_index( ix + 1, iy + 1 )
+				vw[i] = self.vals[iy][ix] #self.value_at_index( ix + 1, iy + 1 )
 				if 0 == vw[i] :
 					vw[i] = float('nan')
 				i = i + 1

@@ -7,10 +7,9 @@
 from box import Box
 import struct
 import logging
-from . import DirectStreamers
-from . import CustomStreamers
 from . import UnZip
 import json
+from rootio.StreamerDict import Streamers
 
 def BIT( n ) :
 	return (1 << n)
@@ -46,7 +45,7 @@ class ROOT(object):
 		if "TString" == type_name or "string" == type_name :
 			return 0
 
-		if type_name in ROOT.IO.CustomStreamers and 'TString' == ROOT.IO.CustomStreamers[ type_name ] :
+		if type_name in Streamers.CustomStreamers and 'TString' == Streamers.CustomStreamers[ type_name ] :
 			return 0
 
 		if len(type_name) < 7 or -1 == type_name.find('TArray') :
@@ -332,8 +331,8 @@ class ROOT(object):
 		if not recurse :
 			return -1
 
-		if typename in ROOT.IO.CustomStreamers :
-			replace = ROOT.IO.CustomStreamers[ typename ];
+		if typename in Streamers.CustomStreamers :
+			replace = Streamers.CustomStreamers[ typename ];
 			if type( replace ) == str : 
 				return ROOT.IO.GetTypeId(replace, true);
 
@@ -364,45 +363,42 @@ class ROOT(object):
 		"StlNames" : [ "", "vector", "list", "deque", "map", "multimap", "set", "multiset", "bitset"],
 		"kStreamedMemberWise": BIT(14),
 		"kSplitCollectionOfPointers": 100,
-		"DirectStreamers" : {
-			"TKey" : DirectStreamers.TKey,
-			"TDatime" : DirectStreamers.TDatime,
-			"TDirectory" : DirectStreamers.TDirectory
-		},
+		# "DirectStreamers" : {
+		# 	"TKey" : DirectStreamers.TKey,
+		# 	"TDatime" : DirectStreamers.TDatime,
+		# 	"TDirectory" : DirectStreamers.TDirectory
+		# },
 
 		# map of user-streamer function like func(buf,obj)
 		# or alias (classname) which can be used to read that function
 		# or list of read functions
-		"CustomStreamers": {
-			"TList" : CustomStreamers.TList,
-			"TObject" : CustomStreamers.TObject,
-			"TNamed" : [ 
-				{ "basename" : "TObject", "base": 1, "func" : CustomStreamers.TNamed_TObject }, 
-				{ "name" : "fName", "func" : CustomStreamers.TNamed_fName },
-				{ "name" : "fTitle", "func" : CustomStreamers.TNamed_fTitle },
-			],
-			"TStreamerInfo" : CustomStreamers.TStreamerInfo,
-			"TObjArray" : CustomStreamers.TObjArray,
-			"TStreamerBase" : CustomStreamers.TStreamerBase,
-			"TStreamerString" : CustomStreamers.TStreamerString,
-			"TStreamerObjectPointer" : CustomStreamers.TStreamerString,
-			"TStreamerElement" : CustomStreamers.TStreamerElement,
-			"TStreamerObject" : CustomStreamers.TStreamerObject,
-			"TStreamerBasicType" : CustomStreamers.TStreamerObject,
-			"TStreamerObjectAny" : CustomStreamers.TStreamerObject,
-			"TStreamerString" : CustomStreamers.TStreamerObject,
-			"TStreamerObjectPointer" : CustomStreamers.TStreamerObject,
-			"TStreamerBasicPointer" : CustomStreamers.TStreamerBasicPointer,
-			"TStreamerLoop" : CustomStreamers.TStreamerBasicPointer,
-			"TStreamerSTL" : CustomStreamers.TStreamerSTL,
-			"TObjString" : [
-				{ "basename" : "TObject", "base" : 1, "func" : CustomStreamers.TObjString_TObject },
-				{ "name" : "fString", "func" : CustomStreamers.TObjString_fString }
-			]
-
-
-
-		},
+		# "CustomStreamers": {
+		# 	"TList" : CustomStreamers.TList,
+		# 	"TObject" : CustomStreamers.TObject,
+		# 	"TNamed" : [ 
+		# 		{ "basename" : "TObject", "base": 1, "func" : CustomStreamers.TNamed_TObject }, 
+		# 		{ "name" : "fName", "func" : CustomStreamers.TNamed_fName },
+		# 		{ "name" : "fTitle", "func" : CustomStreamers.TNamed_fTitle },
+		# 	],
+		# 	"TStreamerInfo" : CustomStreamers.TStreamerInfo,
+		# 	"TObjArray" : CustomStreamers.TObjArray,
+		# 	"TStreamerBase" : CustomStreamers.TStreamerBase,
+		# 	"TStreamerString" : CustomStreamers.TStreamerString,
+		# 	"TStreamerObjectPointer" : CustomStreamers.TStreamerString,
+		# 	"TStreamerElement" : CustomStreamers.TStreamerElement,
+		# 	"TStreamerObject" : CustomStreamers.TStreamerObject,
+		# 	"TStreamerBasicType" : CustomStreamers.TStreamerObject,
+		# 	"TStreamerObjectAny" : CustomStreamers.TStreamerObject,
+		# 	"TStreamerString" : CustomStreamers.TStreamerObject,
+		# 	"TStreamerObjectPointer" : CustomStreamers.TStreamerObject,
+		# 	"TStreamerBasicPointer" : CustomStreamers.TStreamerBasicPointer,
+		# 	"TStreamerLoop" : CustomStreamers.TStreamerBasicPointer,
+		# 	"TStreamerSTL" : CustomStreamers.TStreamerSTL,
+		# 	"TObjString" : [
+		# 		{ "basename" : "TObject", "base" : 1, "func" : CustomStreamers.TObjString_TObject },
+		# 		{ "name" : "fString", "func" : CustomStreamers.TObjString_fString }
+		# 	]
+		# },
 
 		"kIsReferenced": BIT(4),
 		"kHasUUID": BIT(5),

@@ -1,6 +1,7 @@
 import rootio.ROOT as ROOT
 from rootio.TBuffer import TBuffer
 from rootio.TDirectory import TDirectory
+from rootio.StreamerDict import Streamers
 import os
 import logging
 from . import UnZip
@@ -88,7 +89,11 @@ class TFile (object) :
 
 	def list_keys(self) :
 		for k in self.fKeys :
-			print( k['fName'] )
+			fqn = k['fName']
+			print( "[%s]: " %( k['fClassName'] ) + fqn )
+			if "TDirectory" == k['fClassName'] :
+				tdir = self.ReadObject( fqn )
+				tdir.list_keys( prefix=fqn )
 
 
 	def ReadBuffer( self, place ) :
@@ -271,14 +276,14 @@ class TFile (object) :
 				typename = elem['fTypeName']
 
 				if typ >= 60 :
-					if ROOT.IO.kStreamer == typ and "TStreamerSTL" == elem['_typename'] and None != elem['fSTLtype'] and None != elem['fCtype'] and elem['fCtype'] < 20 :
-						prefix = ROOT.IO.StlNames[ elem['fSTLtype'] ] if None != ROOT.IO.StlNames and None != ROOT.IO.StlNames[ elem['fSTLtype'] ] else "undef" + "<"
+					if ROOT.ROOT.IO.kStreamer == typ and "TStreamerSTL" == elem['_typename'] and None != elem['fSTLtype'] and None != elem['fCtype'] and elem['fCtype'] < 20 :
+						prefix = ROOT.ROOT.IO.StlNames[ elem['fSTLtype'] ] if None != ROOT.ROOT.IO.StlNames and None != ROOT.ROOT.IO.StlNames[ elem['fSTLtype'] ] else "undef" + "<"
 						if 0 == typename.find( prefix ) and ">" == typename[ -1 ] :
 							typ = elem['fCtype']
 							
 							#TODO trim string
 							typename = typename[ len(prefix) : len(typename) - len(prefix) - 1 ].strip()
-							if ROOT.IO.kSTLmap == elem['fSTLtype'] or ROOT.IO.kSTLmultimap == elem['fSTLtype'] :
+							if ROOT.ROOT.IO.kSTLmap == elem['fSTLtype'] or ROOT.ROOT.IO.kSTLmultimap == elem['fSTLtype'] :
 								if typename.find(',')>0 :
 									typename = typename[ 0: typename.find( ',' ) ].strip()
 								else :
@@ -290,13 +295,13 @@ class TFile (object) :
 						typename = typename[ 0 : -1 ]
 					typ = typ % 20
 
-				kind = ROOT.IO.GetTypeId( typename )
+				kind = ROOT.ROOT.IO.GetTypeId( typename )
 				if kind == typ :
 					continue
 
-				if ROOT.IO.kBits == typ and ROOT.IO.kUInt == kind :
+				if ROOT.ROOT.IO.kBits == typ and ROOT.ROOT.IO.kUInt == kind :
 					continue
-				if ROOT.IO.kCounter and ROOT.IO.kInt == kind :
+				if ROOT.ROOT.IO.kCounter and ROOT.ROOT.IO.kInt == kind :
 					continue
 
 				if None != typename and None != typ :
@@ -420,7 +425,7 @@ class TFile (object) :
 		streamer = None 
 
 		if "TH1" == classname :
-    			self.logger.debug("TH1")
+			self.logger.debug("TH1")
 
 		if None != ver and ( 'checksum' in ver or 'val' in ver ) :
 			fullname += "$chksum" + str(ver['checksum']) if 'checksum' in ver else "$ver" + str(ver['val'])
@@ -432,7 +437,9 @@ class TFile (object) :
 				return streamer
 
 		self.logger.debug( "Looking for custom streamer named %s", classname)
-		custom = ROOT.IO.CustomStreamers[ classname ] if classname in ROOT.IO.CustomStreamers else None
+
+		CustomStreamers = Streamers.CustomStreamers
+		custom = CustomStreamers[ classname ] if classname in CustomStreamers else None
 
 		if None != custom :
 			self.logger.debug("Found custom streamer for %s", classname )
@@ -442,7 +449,7 @@ class TFile (object) :
 
 		if True == callable( custom ) :
 			streamer = [ { 'typename' : classname, 'func': custom } ]
-			return ROOT.AddClassMethods( classname, streamer )
+			return ROOT.ROOT.AddClassMethods( classname, streamer )
 
 		streamer = []
 		if box.BoxList == type( custom ) :
@@ -469,7 +476,7 @@ class TFile (object) :
 			self.logger.debug( "s_i = %s", s_i )
 			for obj in s_i['fElements']['arr'] :
 				# obj = s_i['fElements']['arr'][s]
-				streamer.append( ROOT.IO.CreateMember( obj, self ) )
+				streamer.append( ROOT.ROOT.IO.CreateMember( obj, self ) )
 				self.logger.debug( "Appending streamer for obj=%s", obj )
 		except KeyError :
 			self.logger.debug( "No fElements.arr" )
@@ -478,7 +485,7 @@ class TFile (object) :
 		self.logger.debug( "fStreamers[%s] = SET", fullname )
 		self.fStreamers[fullname] = streamer;
 
-		return ROOT.AddClassMethods(classname, streamer);
+		return ROOT.ROOT.AddClassMethods(classname, streamer);
 
 	def FindStreamerInfo( self, clname, clversion, clchecksum = None ) :
 		if None == self.fStreamerInfos :

@@ -37,9 +37,13 @@ class TDirectory (object) :
 	def __setitem__(self, key, value) :
 		object.__setattr__( self, key, value )
 	
-	def list_keys(self) :
+	def list_keys(self, prefix) :
 		for k in self.fKeys :
-			print k['fName']
+			fqn=prefix + "/" + k['fName']
+			print( "[%s]: " %( k['fClassName'] ) + fqn )
+			if "TDirectory" == k['fClassName'] :
+				tdir = self.fFile.ReadObject( fqn )
+				tdir.list_keys( prefix=fqn )
 	
 	def GetKey(self, keyname, cycle ) :
 		for i in range( 0, len(self.fKeys) ) :

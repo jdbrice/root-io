@@ -22,8 +22,7 @@ tfile = TFile( sys.argv[1] )
 
 # logging.info( "TFile after reading Keys" )
 # logging.info( json.dumps( tfile, indent=4, sort_keys=True ) )
-for k in tfile["fKeys"] :
-	print(k['fName'])
+tfile.list_keys()
 
 
 # logging.info( json.dumps(tfile.fkeys, indent=4) )
@@ -33,7 +32,7 @@ if  len(sys.argv) >= 3 :
 	obj = tfile.ReadObject( sys.argv[2] )
 
 	print( "hello danny" )
-	# print "%s" % (json.dumps(obj, indent=True) )
+	print( "%s" % (json.dumps(obj, indent=True)  ))
 
 	# hist = tfile.Get( sys.argv[2] )
 	# print "hist ndim =", hist.n_dim

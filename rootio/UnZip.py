@@ -1,7 +1,4 @@
-
-# import rootio.ROOT
-# from rootio import ROOT as ROOT
-from . import ROOT as ROOT
+import struct
 import zlib
 import gzip
 import logging
@@ -9,6 +6,13 @@ try:
     from StringIO import StringIO
 except ImportError:
     from io import StringIO
+
+
+def getChar( arr, curr ) :
+	return struct.unpack( 'c', arr[curr:curr+1] )[0]
+	
+def getCode( arr, curr ) :
+	return struct.unpack( 'b', arr[curr:curr+1] )[0]
 
 def R__unzip( arr, tgtsize, src_shift = 0 ) :
 	logging.getLogger("R__unzip").debug( "R__unzip( len(arr)=%d, tgtsize=%d, src_shift=%d )", len(arr), tgtsize, src_shift )
@@ -26,18 +30,15 @@ def R__unzip( arr, tgtsize, src_shift = 0 ) :
 		if curr + headersize >= totallen :
 			logging.getLogger("R__unzip").debug( "Error in R__unxip : header size exceeds buffer size" )
 			return None
-		
-		getChar=ROOT.ROOT.getChar
-		getCode=ROOT.ROOT.getCode
 
 		logging.getLogger("R__unzip").debug( "%s%s" %(getChar(arr, curr), getChar(arr, curr+1)) )
-		if getChar(arr, curr) == 'Z' and getChar(arr, curr+1) == 'L' and getCode(arr, curr+2) == 8 :
+		if getChar(arr, curr) == b'Z' and getChar(arr, curr+1) == b'L' and getCode(arr, curr+2) == 8 :
 			fmt = "new"
 			off = 2
-		elif getChar(arr, curr) == 'C' and getChar(arr, curr+1) == 'S' and getCode(arr, curr+2) == 8 :
+		elif getChar(arr, curr) == b'C' and getChar(arr, curr+1) == b'S' and getCode(arr, curr+2) == 8 :
 			fmt = "old"
 			off = 0
-		elif getChar(arr, curr) == 'X' and getChar(arr, curr+1) == 'Z' :
+		elif getChar(arr, curr) == b'X' and getChar(arr, curr+1) == b'Z' :
 			fmt = "LZMA";
 
 		if "new" != fmt and "old" != fmt :
