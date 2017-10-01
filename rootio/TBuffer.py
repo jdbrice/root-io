@@ -350,7 +350,7 @@ class TBuffer(object):
 		return res
 
 	def codeAt(self, pos ) :
-		return struct.unpack( 'B', self.arr[ pos ] )[0]
+		return struct.unpack( 'B', bytes( [self.arr[ pos ]] ) )[0]
 
 	def substring( self, beg, end ) :
 		res = ""

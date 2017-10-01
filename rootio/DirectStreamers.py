@@ -1,10 +1,10 @@
 
-from . import ROOT
+import logging
 # from pdb import set_trace as bp
 
 
 def TKey( buf, key ) :
-	ROOT.getLogger("DirectStreamers.TKey").debug( "( buf=%s, obj=%s )", buf, key )
+	logging.getLogger("DirectStreamers.TKey").debug( "( buf=%s, obj=%s )", buf, key )
 	key['fNbytes']  = buf.ntoi4()
 	key['fVersion'] = buf.ntoi2()
 	key['fObjlen']  = buf.ntou4()
@@ -21,15 +21,15 @@ def TKey( buf, key ) :
 	key['fName']  = buf.ReadTString()
 	key['fTitle'] = buf.ReadTString()
 
-	ROOT.logger.debug( "TKey( buf=%s, key=%s )", buf, key )
+	logging.getLogger("DirectStreamers.TKey").debug( "TKey( buf=%s, key=%s )", buf, key )
 
 def TDatime( buf, key ) :
-	ROOT.getLogger("DirectStreamers.TDatime").debug( "( buf=%s, obj=%s )", buf, key )
+	logging.getLogger("DirectStreamers.TDatime").debug( "( buf=%s, obj=%s )", buf, key )
 	key['fDatime'] = buf.ntou4()
-	ROOT.getLogger("DirectStreamers.TDatime").debug( "AFTER( buf=%s, obj=%s )", buf, key )
+	logging.getLogger("DirectStreamers.TDatime").debug( "AFTER( buf=%s, obj=%s )", buf, key )
 
 def TDirectory( buf, obj ) :
-	ROOT.getLogger("DirectStreamers.TDirectory").debug( "( buf=%s, obj=%s )", buf, obj )
+	logging.getLogger("DirectStreamers.TDirectory").debug( "( buf=%s, obj=%s )", buf, obj )
 	
 	version            = buf.ntou2()
 	obj['fDatimeC']    = buf.ClassStreamer({}, 'TDatime')
@@ -40,6 +40,6 @@ def TDirectory( buf, obj ) :
 	obj['fSeekParent'] = buf.ntou8() if version > 1000 else buf.ntou4()
 	obj['fSeekKeys']   = buf.ntou8() if version > 1000 else buf.ntou4()
 
-	ROOT.getLogger("DirectStreamers.TDirectory").debug( "( buf=%s, obj=%s )", buf, obj )
+	logging.getLogger("DirectStreamers.TDirectory").debug( "( buf=%s, obj=%s )", buf, obj )
 
 	

@@ -1,4 +1,4 @@
-from rootio.ROOT import ROOT as ROOT
+import rootio.ROOT as ROOT
 from rootio.TBuffer import TBuffer
 from rootio.TDirectory import TDirectory
 import os

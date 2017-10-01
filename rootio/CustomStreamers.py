@@ -1,5 +1,5 @@
 
-from . import ROOT
+import rootio.ROOT
 import math
 import json
 
