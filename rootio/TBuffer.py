@@ -483,7 +483,7 @@ class TBuffer(object):
 					streamer[n]['func']( self, obj )
 					# self.logger.info( "%s", json.dumps( obj, indent=4 ) )
 				else :
-					self.logger.debug( "hmm, should be callable for classname=%s, obj=%s", classname, obj )
+					self.logger.info( "hmm, should be callable for classname=%s, obj=%s", classname, obj )
 		else :
 			self.logger.debug( "ClassStreamer not implemented yet for ", classname  )
 			# TODO: Add Methods

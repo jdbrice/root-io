@@ -2,6 +2,7 @@ import rootio.ROOT as ROOT
 from rootio.TBuffer import TBuffer
 from rootio.TDirectory import TDirectory
 from rootio.StreamerDict import Streamers
+from rootio.IOData import IOData
 import os
 import logging
 from . import UnZip
@@ -276,14 +277,14 @@ class TFile (object) :
 				typename = elem['fTypeName']
 
 				if typ >= 60 :
-					if ROOT.ROOT.IO.kStreamer == typ and "TStreamerSTL" == elem['_typename'] and None != elem['fSTLtype'] and None != elem['fCtype'] and elem['fCtype'] < 20 :
-						prefix = ROOT.ROOT.IO.StlNames[ elem['fSTLtype'] ] if None != ROOT.ROOT.IO.StlNames and None != ROOT.ROOT.IO.StlNames[ elem['fSTLtype'] ] else "undef" + "<"
+					if IOData.kStreamer == typ and "TStreamerSTL" == elem['_typename'] and None != elem['fSTLtype'] and None != elem['fCtype'] and elem['fCtype'] < 20 :
+						prefix = IOData.StlNames[ elem['fSTLtype'] ] if None != IOData.StlNames and None != IOData.StlNames[ elem['fSTLtype'] ] else "undef" + "<"
 						if 0 == typename.find( prefix ) and ">" == typename[ -1 ] :
 							typ = elem['fCtype']
 							
 							#TODO trim string
 							typename = typename[ len(prefix) : len(typename) - len(prefix) - 1 ].strip()
-							if ROOT.ROOT.IO.kSTLmap == elem['fSTLtype'] or ROOT.ROOT.IO.kSTLmultimap == elem['fSTLtype'] :
+							if IOData.kSTLmap == elem['fSTLtype'] or IOData.kSTLmultimap == elem['fSTLtype'] :
 								if typename.find(',')>0 :
 									typename = typename[ 0: typename.find( ',' ) ].strip()
 								else :
@@ -295,13 +296,13 @@ class TFile (object) :
 						typename = typename[ 0 : -1 ]
 					typ = typ % 20
 
-				kind = ROOT.ROOT.IO.GetTypeId( typename )
+				kind = ROOT.ROOT.GetTypeId( typename )
 				if kind == typ :
 					continue
 
-				if ROOT.ROOT.IO.kBits == typ and ROOT.ROOT.IO.kUInt == kind :
+				if IOData.kBits == typ and IOData.kUInt == kind :
 					continue
-				if ROOT.ROOT.IO.kCounter and ROOT.ROOT.IO.kInt == kind :
+				if IOData.kCounter and IOData.kInt == kind :
 					continue
 
 				if None != typename and None != typ :
@@ -476,7 +477,7 @@ class TFile (object) :
 			self.logger.debug( "s_i = %s", s_i )
 			for obj in s_i['fElements']['arr'] :
 				# obj = s_i['fElements']['arr'][s]
-				streamer.append( ROOT.ROOT.IO.CreateMember( obj, self ) )
+				streamer.append( ROOT.ROOT.CreateMember( obj, self ) )
 				self.logger.debug( "Appending streamer for obj=%s", obj )
 		except KeyError :
 			self.logger.debug( "No fElements.arr" )

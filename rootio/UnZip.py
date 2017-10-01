@@ -22,7 +22,7 @@ def R__unzip( arr, tgtsize, src_shift = 0 ) :
 	tgtbuf = None
 
 	while fullres < tgtsize :
-		logging.getLogger("R__unzip").info( "curr=%d", curr )
+		logging.getLogger("R__unzip").debug( "curr=%d", curr )
 		fmt = "unknown"
 		off = 0
 		headersize = 9

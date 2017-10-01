@@ -4,12 +4,13 @@
 # @Last Modified by:   Daniel
 # @Last Modified time: 2017-09-21 09:23:26
 
-from box import Box
-import struct
+
+
 import logging
 from . import UnZip
 import json
 from rootio.StreamerDict import Streamers
+from rootio.IOData import IOData
 
 def BIT( n ) :
 	return (1 << n)
@@ -17,19 +18,6 @@ def BIT( n ) :
 class ROOT(object):
 
 	logger = logging.getLogger( "ROOT" )
-
-	@staticmethod
-	def getLogger( name ) :
-		return logging.getLogger( name )
-
-	@staticmethod
-	def getChar( arr, curr ) :
-		return struct.unpack( 'c', arr[curr:curr+1] )[0]
-	
-	@staticmethod
-	def getCode( arr, curr ) :
-		return struct.unpack( 'b', arr[curr:curr+1] )[0]
-
 
 	@staticmethod
 	def AddClassMethods( classname, streamer ) :
@@ -54,13 +42,13 @@ class ROOT(object):
 		# key is string type_name
 		# value is the enum type id
 		array_types = {
-			"TArrayI" : ROOT.IO.kInt,
-			"TArrayD" : ROOT.IO.kDouble,
-			"TArrayF" : ROOT.IO.kFloat,
-			"TArrayS" : ROOT.IO.kShort,
-			"TArrayC" : ROOT.IO.kChar,
-			"TArrayL" : ROOT.IO.kLong,
-			"TArrayL64" : ROOT.IO.kLong64,
+			"TArrayI" : IOData.kInt,
+			"TArrayD" : IOData.kDouble,
+			"TArrayF" : IOData.kFloat,
+			"TArrayS" : IOData.kShort,
+			"TArrayC" : IOData.kChar,
+			"TArrayL" : IOData.kLong,
+			"TArrayL64" : IOData.kLong64,
 		}
 
 		if type_name in array_types :
@@ -91,35 +79,35 @@ class ROOT(object):
 		}
 
 		if "BASE" == element['fTypeName'] :
-			if ROOT.IO.GetArrayKind( member['name'] ) > 0 :
+			if ROOT.GetArrayKind( member['name'] ) > 0 :
 				# this is workaround for arrays as base class
 				# we create 'fArray' member, which read as any other data member
 				member['name'] = 'fArray'
-				member['type'] = ROOT.IO.kAny
+				member['type'] = IOData.kAny
 			else :
 				# create streamer for base class
-				member['type'] = ROOT.IO.kBase;
+				member['type'] = IOData.kBase;
 				# this.GetStreamer(element.fName);
 
 		t = member['type'] 
 		simple = {
-			ROOT.IO.kShort: "h",
-			ROOT.IO.kInt: "i",
-			ROOT.IO.kCounter: "i",
-			ROOT.IO.kLong: "u",
-			ROOT.IO.kLong64: "u",
-			ROOT.IO.kDouble: "d",
-			ROOT.IO.kFloat: "f",
-			ROOT.IO.kLegacyChar: "B",
-			ROOT.IO.kUChar: "B",
-			ROOT.IO.kUShort: "H",
-			ROOT.IO.kBits: "I",
-			ROOT.IO.kUInt: "I",
-			ROOT.IO.kULong64: "U",
-			ROOT.IO.kULong: "U"
+			IOData.kShort: "h",
+			IOData.kInt: "i",
+			IOData.kCounter: "i",
+			IOData.kLong: "u",
+			IOData.kLong64: "u",
+			IOData.kDouble: "d",
+			IOData.kFloat: "f",
+			IOData.kLegacyChar: "B",
+			IOData.kUChar: "B",
+			IOData.kUShort: "H",
+			IOData.kBits: "I",
+			IOData.kUInt: "I",
+			IOData.kULong64: "U",
+			IOData.kULong: "U"
 		}
 
-		if t == ROOT.IO.kBase :
+		if t == IOData.kBase :
 			found = True
 			member['base'] = element['fBaseVersion'] # indicate base class
 			member['basename'] = element['fName']; # keep class name
@@ -133,36 +121,36 @@ class ROOT(object):
 			member['func'] = ROOT.CreateMemberSimpleStreamer( member['name'], simple[ member['type'] ] )
 			return member
 
-		if t == ROOT.IO.kBool :
+		if t == IOData.kBool :
 			found = True
 			def func( buf, obj ) :
 				obj[member['name']] = True if buf.ntou1() != 0 else False
 			member['func'] = func
 
 		memberL = [
-			(ROOT.IO.kBool),
-			(ROOT.IO.kInt),
-			(ROOT.IO.kCounter),
-			(ROOT.IO.kDouble),
-			(ROOT.IO.kUChar),
-			(ROOT.IO.kShort),
-			(ROOT.IO.kUShort),
-			(ROOT.IO.kBits),
-			(ROOT.IO.kUInt),
-			(ROOT.IO.kULong),
-			(ROOT.IO.kULong64),
-			(ROOT.IO.kLong),
-			(ROOT.IO.kLong64),
-			(ROOT.IO.kFloat)
+			(IOData.kBool),
+			(IOData.kInt),
+			(IOData.kCounter),
+			(IOData.kDouble),
+			(IOData.kUChar),
+			(IOData.kShort),
+			(IOData.kUShort),
+			(IOData.kBits),
+			(IOData.kUInt),
+			(IOData.kULong),
+			(IOData.kULong64),
+			(IOData.kLong),
+			(IOData.kLong64),
+			(IOData.kFloat)
 		]
 
-		if (t - ROOT.IO.kOffsetL) in memberL :
+		if (t - IOData.kOffsetL) in memberL :
 			found = True
 			if element['fArrayDim'] < 2 :
 				member['arrlength'] = element['fArrayLength']
 				def func( buf, obj ) :
 					ROOT.getLogger("memberL").info( "member %s", member )
-					obj[member['name']] = buf.ReadFastArray( member['arrlength'], member['type'] - ROOT.IO.kOffsetL )
+					obj[member['name']] = buf.ReadFastArray( member['arrlength'], member['type'] - IOData.kOffsetL )
 				member[ 'func' ] = func
 			else :
 				member['arrlength'] = element['fMaxIndex'][ element['fArrayDim'] - 1 ]
@@ -171,14 +159,14 @@ class ROOT(object):
 				def rnda( buf, obj ) :
 					def rfa( buf1, handle ) :
 						ROOT.getLogger("memberL").info( "member %s", member )
-						return buf1.ReadFastArray( handle['arrlength'], handle['type'] - ROOT.IO.kOffsetL )
+						return buf1.ReadFastArray( handle['arrlength'], handle['type'] - IOData.kOffsetL )
 
 					obj[member['name']] = buf.ReadNdimArray( member, rfa )
 				
 				member['func'] = rnda
 
 
-		if t == ROOT.IO.kOffsetL+ROOT.IO.kChar :
+		if t == IOData.kOffsetL+IOData.kChar :
 			found = True
 			if element['fArrayDim'] < 2 :
 				member['arrlength'] = element['fArrayLength'];
@@ -194,19 +182,19 @@ class ROOT(object):
 
 					obj[ member['name'] ] = buf.ReadNdimArray( member, rfs )
 
-		if (t - ROOT.IO.kOffsetP) in memberL :
+		if (t - IOData.kOffsetP) in memberL :
 			found = True
 			member['cntname'] = element['fCountName'];
 			def func( buf, obj ) :
 				v = buf.ntou1()
 				if 1 == v :
 					# ROOT.getLogger("memberL").info( "obj \n%s, member \n%s ", json.dumps( {k:v for k, v in obj.iteritems() if k is not "func"} , indent=4), json.dumps({k:v for k, v in member.iteritems() if k is not "func"}, indent=4) )
-					obj[ member['name'] ] = buf.ReadFastArray( obj[ member['cntname'] ], member['type'] - ROOT.IO.kOffsetP )
+					obj[ member['name'] ] = buf.ReadFastArray( obj[ member['cntname'] ], member['type'] - IOData.kOffsetP )
 				else :
 					obj[ member['name'] ] = []
 			member['func'] = func
 		
-		if t == (ROOT.IO.kOffsetP+ROOT.IO.kChar) :
+		if t == (IOData.kOffsetP+IOData.kChar) :
 			found = True
 			member['cntname'] = element['fCountName'];
 			def func( buf, obj ) :
@@ -219,13 +207,13 @@ class ROOT(object):
 			member['func'] = func
 
 
-		if t == ROOT.IO.kDouble32 or t == (ROOT.IO.kOffsetL+ROOT.IO.kDouble32) or t == (ROOT.IO.kOffsetP+ROOT.IO.kDouble32):
+		if t == IOData.kDouble32 or t == (IOData.kOffsetL+IOData.kDouble32) or t == (IOData.kOffsetP+IOData.kDouble32):
 			found = True
 			member['double32'] = True;
 
 		# SKIP - need to fill in
 
-		if t == ROOT.IO.kAnyP or t == ROOT.IO.kObjectP :
+		if t == IOData.kAnyP or t == IOData.kObjectP :
 			found = True
 			def func( buf, obj ) :
 				def roa( buf1, handle ) :
@@ -233,7 +221,7 @@ class ROOT(object):
 				obj[  member['name'] ] = buf.ReadNdimArray( member, roa )
 			member['func'] = func
 			
-		if t == ROOT.IO.kAny or t == ROOT.IO.kAnyp or t == ROOT.IO.kObjectp or t == ROOT.IO.kObject:
+		if t == IOData.kAny or t == IOData.kAnyp or t == IOData.kObjectp or t == IOData.kObject:
 			found = True
 			classname = element[ 'fName' ] if "BASE" == element['fTypeName'] else element['fTypeName']
 			if classname[-1] == "*" :
@@ -266,7 +254,7 @@ class ROOT(object):
 					member['func'] = func
 
 		# Skip - need to fill in
-		if t == ROOT.IO.kTString:
+		if t == IOData.kTString:
 			found = True
 			def func( buf, obj ) :
 				member['name'] = buf.ReadTString()
@@ -284,45 +272,45 @@ class ROOT(object):
 		# optimize by not doing this inside func
 		
 		type_ids = {
-			"bool": ROOT.io_data['kBool'],
-			"Bool_t": ROOT.io_data['kBool'],
-			"char": ROOT.io_data['kChar'],
-			"signed char": ROOT.io_data['kChar'],
-			"Char_t": ROOT.io_data['kChar'],
-			"Color_t": ROOT.io_data['kShort'],
-			"Style_t": ROOT.io_data['kShort'],
-			"Width_t": ROOT.io_data['kShort'],
-			"short": ROOT.io_data['kShort'],
-			"Short_t": ROOT.io_data['kShort'],
-			"int": ROOT.io_data['kInt'],
-			"EErrorType": ROOT.io_data['kInt'],
-			"Int_t": ROOT.io_data['kInt'],
-			"long": ROOT.io_data['kLong'],
-			"Long_t": ROOT.io_data['kLong'],
-			"float": ROOT.io_data['kFloat'],
-			"Float_t": ROOT.io_data['kFloat'],
-			"double": ROOT.io_data['kDouble'],
-			"Double_t": ROOT.io_data['kDouble'],
-			"unsigned char": ROOT.io_data['kUChar'],
-			"UChar_t": ROOT.io_data['kUChar'],
-			"unsigned short": ROOT.io_data['kUShort'],
-			"UShort_t": ROOT.io_data['kUShort'],
-			"unsigned": ROOT.io_data['kUInt'],
-			"unsigned int": ROOT.io_data['kUInt'],
-			"UInt_t": ROOT.io_data['kUInt'],
-			"unsigned long": ROOT.io_data['kULong'],
-			"ULong_t": ROOT.io_data['kULong'],
-			"int64_t": ROOT.io_data['kLong64'],
-			"long long": ROOT.io_data['kLong64'],
-			"Long64_t": ROOT.io_data['kLong64'],
-			"uint64_t": ROOT.io_data['kULong64'],
-			"unsigned long long": ROOT.io_data['kULong64'],
-			"ULong64_t": ROOT.io_data['kULong64'],
-			"Double32_t": ROOT.io_data['kDouble32'],
-			"Float16_t": ROOT.io_data['kFloat16'],
-			"char*": ROOT.io_data['kCharStar'],
-			"const char*": ROOT.io_data['kCharStar'],
-			"const Char_t*": ROOT.io_data['kCharStar'],
+			"bool": IOData['kBool'],
+			"Bool_t": IOData['kBool'],
+			"char": IOData['kChar'],
+			"signed char": IOData['kChar'],
+			"Char_t": IOData['kChar'],
+			"Color_t": IOData['kShort'],
+			"Style_t": IOData['kShort'],
+			"Width_t": IOData['kShort'],
+			"short": IOData['kShort'],
+			"Short_t": IOData['kShort'],
+			"int": IOData['kInt'],
+			"EErrorType": IOData['kInt'],
+			"Int_t": IOData['kInt'],
+			"long": IOData['kLong'],
+			"Long_t": IOData['kLong'],
+			"float": IOData['kFloat'],
+			"Float_t": IOData['kFloat'],
+			"double": IOData['kDouble'],
+			"Double_t": IOData['kDouble'],
+			"unsigned char": IOData['kUChar'],
+			"UChar_t": IOData['kUChar'],
+			"unsigned short": IOData['kUShort'],
+			"UShort_t": IOData['kUShort'],
+			"unsigned": IOData['kUInt'],
+			"unsigned int": IOData['kUInt'],
+			"UInt_t": IOData['kUInt'],
+			"unsigned long": IOData['kULong'],
+			"ULong_t": IOData['kULong'],
+			"int64_t": IOData['kLong64'],
+			"long long": IOData['kLong64'],
+			"Long64_t": IOData['kLong64'],
+			"uint64_t": IOData['kULong64'],
+			"unsigned long long": IOData['kULong64'],
+			"ULong64_t": IOData['kULong64'],
+			"Double32_t": IOData['kDouble32'],
+			"Float16_t": IOData['kFloat16'],
+			"char*": IOData['kCharStar'],
+			"const char*": IOData['kCharStar'],
+			"const Char_t*": IOData['kCharStar'],
 		}
 
 		if typename in type_ids :
@@ -334,79 +322,9 @@ class ROOT(object):
 		if typename in Streamers.CustomStreamers :
 			replace = Streamers.CustomStreamers[ typename ];
 			if type( replace ) == str : 
-				return ROOT.IO.GetTypeId(replace, true);
+				return ROOT.GetTypeId(replace, true);
 
 		return -1;
 
-
-	io_data = {
-		"kBase": 0, "kOffsetL": 20, "kOffsetP": 40,
-		"kChar":   1, "kShort":   2, "kInt":   3, "kLong":   4, "kFloat": 5, "kCounter": 6, "kCharStar": 7, "kDouble": 8, "kDouble32": 9, "kLegacyChar ": 10,
-		"kUChar": 11, "kUShort": 12, "kUInt": 13, "kULong": 14, "kBits": 15, "kLong64": 16, "kULong64": 17, "kBool": 18,  "kFloat16": 19,
-		"kObject": 61, "kAny": 62, "kObjectp": 63, "kObjectP": 64, "kTString": 65,
-		"kTObject": 66, "kTNamed": 67, "kAnyp": 68, "kAnyP": 69, "kAnyPnoVT": 70, "kSTLp": 71,
-		"kSkip": 100, "kSkipL": 120, "kSkipP": 140, "kConv": 200, "kConvL": 220, "kConvP": 240,
-		"kSTL": 300, "kSTLstring": 365, "kStreamer": 500, "kStreamLoop": 501,
-		"kMapOffset": 2,
-		"kByteCountMask": 0x40000000,
-		"kNewClassTag": 0xFFFFFFFF,
-		"kClassMask": 0x80000000,
-		"Mode": "array", # could be string or array, enable usage of ArrayBuffer in http requests
-		"NativeArray": True,
-		"TypeNames" : ["BASE", "char", "short", "int", "long", "float", "int", "const char*", "double", "Double32_t", "char", "unsigned  char", "unsigned short", "unsigned", "unsigned long", "unsigned", "Long64_t", "ULong64_t", "bool", "Float16_t"],
-		"kNotSTL": 0, "kSTLvector": 1, "kSTLlist": 2, "kSTLdeque": 3, "kSTLmap": 4, "kSTLmultimap": 5,
-		"kSTLset": 6, "kSTLmultiset": 7, "kSTLbitset": 8, "kSTLforwardlist": 9,
-		"kSTLunorderedset" : 10, "kSTLunorderedmultiset" : 11, "kSTLunorderedmap" : 12,
-		"kSTLunorderedmultimap" : 13, "kSTLend" : 14,
-
-		# names of STL containers
-		"StlNames" : [ "", "vector", "list", "deque", "map", "multimap", "set", "multiset", "bitset"],
-		"kStreamedMemberWise": BIT(14),
-		"kSplitCollectionOfPointers": 100,
-		# "DirectStreamers" : {
-		# 	"TKey" : DirectStreamers.TKey,
-		# 	"TDatime" : DirectStreamers.TDatime,
-		# 	"TDirectory" : DirectStreamers.TDirectory
-		# },
-
-		# map of user-streamer function like func(buf,obj)
-		# or alias (classname) which can be used to read that function
-		# or list of read functions
-		# "CustomStreamers": {
-		# 	"TList" : CustomStreamers.TList,
-		# 	"TObject" : CustomStreamers.TObject,
-		# 	"TNamed" : [ 
-		# 		{ "basename" : "TObject", "base": 1, "func" : CustomStreamers.TNamed_TObject }, 
-		# 		{ "name" : "fName", "func" : CustomStreamers.TNamed_fName },
-		# 		{ "name" : "fTitle", "func" : CustomStreamers.TNamed_fTitle },
-		# 	],
-		# 	"TStreamerInfo" : CustomStreamers.TStreamerInfo,
-		# 	"TObjArray" : CustomStreamers.TObjArray,
-		# 	"TStreamerBase" : CustomStreamers.TStreamerBase,
-		# 	"TStreamerString" : CustomStreamers.TStreamerString,
-		# 	"TStreamerObjectPointer" : CustomStreamers.TStreamerString,
-		# 	"TStreamerElement" : CustomStreamers.TStreamerElement,
-		# 	"TStreamerObject" : CustomStreamers.TStreamerObject,
-		# 	"TStreamerBasicType" : CustomStreamers.TStreamerObject,
-		# 	"TStreamerObjectAny" : CustomStreamers.TStreamerObject,
-		# 	"TStreamerString" : CustomStreamers.TStreamerObject,
-		# 	"TStreamerObjectPointer" : CustomStreamers.TStreamerObject,
-		# 	"TStreamerBasicPointer" : CustomStreamers.TStreamerBasicPointer,
-		# 	"TStreamerLoop" : CustomStreamers.TStreamerBasicPointer,
-		# 	"TStreamerSTL" : CustomStreamers.TStreamerSTL,
-		# 	"TObjString" : [
-		# 		{ "basename" : "TObject", "base" : 1, "func" : CustomStreamers.TObjString_TObject },
-		# 		{ "name" : "fString", "func" : CustomStreamers.TObjString_fString }
-		# 	]
-		# },
-
-		"kIsReferenced": BIT(4),
-		"kHasUUID": BIT(5),
-
-		"GetArrayKind" : GetArrayKind.__func__,
-		"GetTypeId" : GetTypeId.__func__,
-		"CreateMember" : CreateMember.__func__,
-	}
-	IO = Box( io_data )
-
+	
 
