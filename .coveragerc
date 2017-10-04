@@ -1,0 +1,15 @@
+[run]
+source =
+    root_io
+    tests
+branch = True
+omit =
+    root_io/cli.py
+
+[report]
+exclude_lines =
+    no cov
+    no qa
+    noqa
+    pragma: no cover
+    if __name__ == .__main__.:

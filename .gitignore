@@ -1,0 +1,13 @@
+*.log
+*.pyc
+.cache/
+.coverage
+.idea/
+.vscode/
+root_io.egg-info/
+build/
+dist/
+docs/build/
+venv/
+wheelhouse/
+*.root
