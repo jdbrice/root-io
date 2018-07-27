@@ -4,7 +4,6 @@
 # @Last Modified by:   Daniel
 # @Last Modified time: 2017-09-21 11:11:23
 
-
 import rootio.TBuffer as TBuffer
 from rootio.TFile import  TFile
 import json
@@ -32,7 +31,7 @@ if  len(sys.argv) >= 3 :
 	obj = tfile.ReadObject( sys.argv[2] )
 
 	print( "hello danny" )
-	# print( "%s" % (json.dumps(obj, indent=True)  ))
+	print( "%s" % (json.dumps(obj, indent=True)  ))
 
 	# hist = tfile.Get( sys.argv[2] )
 	# print "hist ndim =", hist.n_dim

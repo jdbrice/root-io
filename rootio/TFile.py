@@ -1,6 +1,6 @@
 import rootio.ROOT as ROOT
-from rootio.TBuffer import TBuffer
-from rootio.TDirectory import TDirectory
+from rootio import TBuffer
+from rootio import TDirectory
 from rootio.StreamerDict import Streamers
 from rootio.IOData import IOData
 import os

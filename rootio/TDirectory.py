@@ -1,6 +1,4 @@
-
-from .TBuffer import TBuffer
-
+from rootio import TBuffer
 
 class TDirectory (object) :
 
