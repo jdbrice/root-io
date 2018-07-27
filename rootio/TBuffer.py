@@ -484,8 +484,6 @@ class TBuffer(object):
 					# self.logger.info( "%s", json.dumps( obj, indent=4 ) )
 				else :
 					self.logger.info( "hmm, should be callable for classname=%s, obj=%s", classname, obj )
-			# if "TBranch" in obj["_typename"] or "TLeaf" in obj["_typename"] or "TTree" in obj["_typename"]:
-				# self.logger.info( "%s", json.dumps( obj, indent=4 ) )
 		else :
 			self.logger.debug( "ClassStreamer not implemented yet for ", classname  )
 			# TODO: Add Methods
