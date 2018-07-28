@@ -15,5 +15,6 @@ A pure python implementation of the ROOT IO data format - DOES NOT need ROOT ins
 - zlib
 - logging
 - numpy
+- python-box
 - matplotlib (optional for drawing)
 
